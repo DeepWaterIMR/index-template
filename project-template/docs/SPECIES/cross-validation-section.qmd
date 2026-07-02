@@ -1,0 +1,9 @@
+<!-- Included by report.qmd. Shares its params. Spatial block CV across mesh cutoffs. -->
+
+```{r cv-section, eval=params$include_cv}
+#| output: asis
+cat("## Cross-validation\n\n")
+fit_total <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+mcv <- sdmTMB_mesh_cv(fit_total, mesh_cutoffs = c(40, 60, 80, 100), k = 3)  # needs blockCV
+print(plot(mcv, metric = "sum_loglik"))
+```

@@ -1,0 +1,22 @@
+<!-- Included by report.qmd. Shares its params. Per-survey indices vs the compiled index:
+filter to one cruiseseries, build a survey-specific mesh and grid, compute the index, and
+compare with compare_surveys(). -->
+
+```{r survey-section, eval=params$include_survey}
+#| output: asis
+cat("## Survey comparison\n\n")
+fit_total   <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+index_total <- readRDS(file.path(out_dir, "index-total.rds"))
+
+sc <- compare_surveys(
+  data          = fit_total$data,
+  compiled_index = index_total,
+  compiled_model = fit_total,
+  surveys        = cfg$SURVEYS,       # one index per cruiseseries
+  newdata        = grid,
+  survey_col     = "cruiseseries",
+  mesh_cutoff    = cfg$MESH_CUTOFF_KM
+)
+print(plot(sc, type = "index"))
+print(plot(sc, type = "scatter"))
+```

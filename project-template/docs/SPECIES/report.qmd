@@ -1,0 +1,110 @@
+---
+title: "{{SPECIES_NAME}} — survey index"
+subtitle: "Step 4 · index-template"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    fig-format: jpeg
+    fig-dpi: 160
+    embed-resources: true
+params:
+  refit_models: true      # FALSE → load fits from data/output
+  bias_correct: false     # TRUE for the final index runs (slow)
+  include_mesh: false          # mesh-comparison section
+  include_barrier: false       # barrier-mesh section
+  include_retro: false         # retrospective section
+  include_cv: false            # mesh cross-validation section
+  include_survey: false        # survey-comparison section
+execute:
+  warning: false
+  message: false
+---
+
+<!-- Step 4: the final model report and the exported assessment index for {{SPECIES_NAME}}.
+Modelled on ref-assessment-index/docs/benchmark/beaked. Produces MULTIPLE indices (total
+biomass, over-X-cm biomass, length-group abundances) and, via the *-section.qmd includes,
+optional mesh / barrier / retro / CV / survey-comparison analyses (each behind a toggle). Set
+bias_correct: true for the final run. Do NOT hard-wrap prose. -->
+
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+source(here::here("R", "00_setup.R"))
+dt <- readRDS(file.path(out_dir, "compiled-data.rds")) |>
+  dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>
+  dplyr::mutate(month = as.integer(month))
+dt   <- sdmTMB::add_utm_columns(dt, ll_names = c("lon", "lat"), utm_crs = dt_crs)
+grid <- readRDS(file.path(out_dir, "prediction-grid.rds"))
+mesh <- sdmTMB::make_mesh(dt, xy_cols = c("X", "Y"), cutoff = cfg$MESH_CUTOFF_KM)
+has_multiple_gears <- dplyr::n_distinct(dt$geartype) > 1
+```
+
+## Products
+
+This report builds the indices the assessment needs. Define the response for each product;
+`get_index_split()` computes many indices from one fit efficiently.
+
+- **Total biomass** — `spatiotemporal = "ar1"`, no year effect.
+- **Over-`r cfg$OVER_CM` cm biomass** — biomass of individuals above the threshold.
+- **Length-group abundance** — one index per group in `config.yaml` `LENGTH_GROUPS`.
+- **Selected assessment index** — `r cfg$SELECTED_INDEX` (feeds `r cfg$ASSESSMENT_MODEL`);
+  often `iid` + `year` as a fixed effect. Confirm with the assessment lead.
+
+```{r fit-products, eval=params$refit_models}
+# Fit the total-biomass model (and length-based variants as needed). Example (total):
+form <- build_formula(cfg, has_multiple_gears)
+dt$value <- dt$rho_biomass
+fit_total <- sdmTMB::sdmTMB(
+  form, data = dplyr::filter(dt, !is.na(value)), mesh = mesh,
+  family = model_family, spatial = "on", spatiotemporal = "ar1", time = "year",
+  control = sdmTMB::sdmTMBcontrol(newton_loops = 2)
+)
+saveRDS(fit_total, file.path(out_dir, "model-fit-total.rds"))
+# … fit over-X-cm and per-length-group models similarly (adapt the response per product).
+```
+
+```{r load-products, eval=!params$refit_models}
+fit_total <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+```
+
+## Indices
+
+```{r indices}
+pred_total  <- predict(fit_total, newdata = grid, return_tmb_object = TRUE)
+index_total <- sdmTMB::get_index(pred_total, bias_correct = params$bias_correct,
+                                 area = grid_cell_area_nmi2)
+saveRDS(index_total, file.path(out_dir, "index-total.rds"))
+
+ggplot2::ggplot(index_total, ggplot2::aes(year, est)) +
+  ggplot2::geom_ribbon(ggplot2::aes(ymin = lwr, ymax = upr), alpha = 0.3) +
+  ggplot2::geom_line() +
+  ggplot2::labs(x = "Year", y = "Total biomass index")
+```
+
+## Results
+
+```{r results}
+plot_fixed_effects(fit_total)
+plot_prediction_map(pred_total, crs = dt_crs, column = "est", type = "annual")
+plot_random_field(pred_total, crs = dt_crs, field = "epsilon")
+plot_residual_qq(fit_total)
+```
+
+## Export the assessment index
+
+```{r export}
+# Export the SELECTED index in the shape the assessment consumes.
+selected <- index_total   # <- replace with the product named in cfg$SELECTED_INDEX
+saveRDS(dplyr::select(selected, year, est, lwr, upr, se),
+        file.path(out_dir, paste0("{{SPECIES_SLUG}}-assessment-index.rds")))
+```
+
+<!-- Optional sections. Each is included textually and shares the params above; its heavy
+compute is guarded by the matching include_* toggle. -->
+
+{{< include mesh-section.qmd >}}
+{{< include barrier-section.qmd >}}
+{{< include retro-section.qmd >}}
+{{< include cross-validation-section.qmd >}}
+{{< include survey-comparison-section.qmd >}}

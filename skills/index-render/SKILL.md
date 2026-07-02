@@ -1,0 +1,49 @@
+---
+name: index-render
+description: Render the (slow) Quarto index documents safely — code-review first, then run the render detached in a screen session with a log in logs/, tell the user the session name, suggest a server, and flip caching toggles to FALSE once outputs exist. Use whenever an index qmd needs compiling.
+---
+
+# Render index documents
+
+Goal: run expensive Quarto renders without wasting compute or blocking the chat. Read
+`knowledge/rendering.md`.
+
+## Step 1 — Review before rendering (required)
+
+**Do not render unreviewed code.** Run `/code-review` (or a careful self-review) on the changed
+qmd chunks and R scripts, and fix issues first. A bug found after a long render costs the whole
+render.
+
+## Step 2 — Check the toggles
+
+- First run of a document: compute toggles (`refit_model`, `recompute_grid`, …) `TRUE`.
+- Re-render after outputs exist in `data/output/`: flip them to `FALSE` so the render loads
+  saved objects. `bias_correct` only `TRUE` for final index runs.
+
+## Step 3 — Render detached with a log
+
+```bash
+screen -dmS <slug>-<doc> bash -c '
+  quarto render "docs/<path>/<doc>.qmd" > "logs/<doc>-$(date +%Y%m%d-%H%M%S).log" 2>&1
+'
+```
+
+Then tell the user:
+
+> Rendering in screen session **`<slug>-<doc>`**. Attach: `screen -r <slug>-<doc>` · follow the
+> log: `tail -f logs/<doc>-*.log` · list sessions: `screen -ls`.
+
+## Step 4 — Suggest a server for heavy jobs
+
+For big meshes, many length groups, CV, or bias correction, **offer to run the render on a
+compute server** to speed it up and free the user's machine.
+
+## Step 5 — After it finishes
+
+- Confirm the expected `data/output/` files were written.
+- Check the HTML size is reasonable (`fig-format: jpeg`, sensible dpi).
+- Flip the compute toggles to `FALSE` for future re-renders.
+- Do **not** delete `.quarto/` to "force a clean build" — fix load paths instead.
+
+Never block the conversation waiting for a long render — start it, report the session, and
+continue.

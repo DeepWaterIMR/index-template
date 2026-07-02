@@ -1,0 +1,53 @@
+# This project holds CODE, DOCS, and MEMORY — never raw data or private paths.
+# data/, logs/, and review/ are ignored; only READMEs in them are kept.
+
+# --- Data, outputs, logs, reviews ---
+data/*
+!data/source/
+data/source/*
+!data/source/README.md
+!data/output/
+data/output/*
+!data/output/README.md
+logs/*
+!logs/README.md
+review/*
+!review/README.md
+
+# --- Raw data extensions (safety net) ---
+*.rds
+*.rda
+*.RData
+*.duckdb
+*.duckdb.wal
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.parquet
+
+# --- Rendered outputs & figures ---
+*.html
+*.pdf
+/*_files/
+**/*_files/
+.quarto/
+*.quarto_ipynb
+
+# --- R / RStudio ---
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,49 @@
+# config.yaml — the single source of truth for this index project.
+# scaffold.R stamps the identity fields (SPECIES_*) into document titles/paths; every other
+# field is read at run time by R/00_setup.R and used by the documents. Edit here, not in the
+# qmds.
+
+# --- Identity ---------------------------------------------------------------------------
+SPECIES_NAME:  "{{SPECIES_NAME}}"     # display name, e.g. "Beaked redfish"
+SPECIES_SLUG:  "{{SPECIES_SLUG}}"     # kebab-case slug for folders/files, e.g. "snabeluer"
+SPECIES_LATIN: "{{SPECIES_LATIN}}"    # binomial, e.g. "Sebastes mentella"
+
+# --- Data selection ---------------------------------------------------------------------
+FILTER_SP:                            # Norwegian commonname value(s) (confirm via BAIT taxaindex)
+  - "snabeluer"
+SURVEYS:                              # cruise series / surveys to include (with true absences)
+  - "EcoS"
+  - "WinterS"
+  - "EggaN"
+USE_SPD: false                        # legacy SPD files? true for northern/offshore; false for southern/coastal
+INCLUDE_RUSSIAN: true                 # Russian data included by DEFAULT; set false to exclude
+FIRST_YEAR: 1981                      # earliest year to include
+
+# --- Response & products ----------------------------------------------------------------
+RESPONSE: "biomass"                   # "biomass" (rho_biomass) or "abundance" (rho_abundance)
+OVER_CM: 30                           # threshold for the "over-X-cm biomass" product
+LENGTH_GROUPS: ["(0,10]", "(10,15]", "(15,20]", "(20,25]", "(25,30]", "(30,40]", "(40,Inf]"]
+
+# --- Gear width -------------------------------------------------------------------------
+# "per_gear" uses gear-type-specific widths (25 m shrimp/Campelen, ~94 m cod/Alfredo).
+# A single number (e.g. 25) uses one set width for all gears — in which case, if the data
+# contain >1 major gear type, GEARTYPE MUST stay a covariate in the model formula.
+GEAR_WIDTH: "per_gear"
+
+# --- Spatial domain & mesh --------------------------------------------------------------
+CRS: 32633                            # projected CRS (EPSG); 32633 = UTM 33N
+GRID_KM: 10                           # prediction grid cell size (km)
+MESH_CUTOFF_KM: 60                    # make_mesh cutoff (km)
+BARRIER: false                        # add a land barrier mesh?
+MAX_DEPTH: 1400                       # deepest grid cell to keep (m)
+
+# --- Model ------------------------------------------------------------------------------
+FAMILY: "delta_lognormal"             # delta_lognormal | delta_gamma | tweedie
+SPATIOTEMPORAL: "ar1"                 # ar1 | iid | rw | off
+INCLUDE_TEMPERATURE: false            # temperature smooth is OFF by default
+ASSESSMENT_MODEL: "SPiCT"             # what consumes the selected index
+SELECTED_INDEX: "Over 30 cm biomass"  # which product feeds the assessment
+
+# --- Paths (relative to project root) ---------------------------------------------------
+OUTPUT_DIR: "data/output"
+SOURCE_DIR: "data/source"

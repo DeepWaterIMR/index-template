@@ -1,0 +1,109 @@
+---
+title: "{{SPECIES_NAME}} — data report"
+subtitle: "Step 1 · index-template"
+format:
+  html:
+    toc: true
+    code-fold: true
+    fig-format: jpeg
+    fig-dpi: 160
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+<!-- Data report for the compiled {{SPECIES_NAME}} dataset. Modelled on SI-Text-1-data. It
+describes and validates the data that go into the model: spatial coverage, sampling through
+time and depth, the response distribution, trawl parameters, and length composition. Do NOT
+hard-wrap prose. Raster maps use fig-format jpeg to keep the HTML small. -->
+
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+source(here::here("R", "00_setup.R"))
+dt <- readRDS(file.path(out_dir, "compiled-data.rds"))
+```
+
+## Overview
+
+Compiled bottom-trawl data for **{{SPECIES_NAME}}** (*{{SPECIES_LATIN}}*): number of stations,
+years, surveys, and the share of zero-catch stations (true absences).
+
+```{r overview}
+dt |>
+  dplyr::summarise(
+    stations = dplyr::n(),
+    years    = paste0(min(startyear), "–", max(startyear)),
+    surveys  = dplyr::n_distinct(cruiseseries),
+    zero_pct = round(100 * mean(rho_biomass == 0), 1)
+  )
+```
+
+## Station map
+
+```{r map}
+sp <- dt |> dplyr::filter(!is.na(longitudestart), !is.na(latitudestart))
+ggOceanMaps::basemap(data = sp, bathymetry = TRUE) +
+  ggspatial::geom_spatial_point(
+    data = sp,
+    ggplot2::aes(x = longitudestart, y = latitudestart, colour = rho_biomass > 0),
+    size = 0.5, alpha = 0.5
+  ) +
+  ggplot2::scale_colour_manual(values = c("grey60", "red"),
+                               labels = c("absent", "present"), name = NULL)
+```
+
+## Sampling through time and depth
+
+```{r effort}
+dt |>
+  dplyr::count(startyear, present = rho_biomass > 0) |>
+  ggplot2::ggplot(ggplot2::aes(startyear, n, fill = present)) +
+  ggplot2::geom_col() +
+  ggplot2::labs(x = "Year", y = "Stations", fill = "Caught")
+```
+
+```{r depth}
+ggplot2::ggplot(dt, ggplot2::aes(depth)) +
+  ggplot2::geom_histogram(bins = 40) +
+  ggplot2::labs(x = "Bottom depth (m)", y = "Stations")
+```
+
+## Response distribution
+
+```{r response}
+dt |>
+  dplyr::filter(rho_biomass > 0) |>
+  ggplot2::ggplot(ggplot2::aes(rho_biomass)) +
+  ggplot2::geom_histogram(bins = 40) +
+  ggplot2::scale_x_log10() +
+  ggplot2::labs(x = expression(paste("Biomass density (kg ", nmi^-2, "), positive stations")),
+                y = "Stations")
+```
+
+## Trawl parameters
+
+Sanity-check the swept-area inputs (haul distance, and — where recorded — duration, door
+spread, wire-to-depth ratio). Outliers here distort the density.
+
+```{r trawl}
+ggplot2::ggplot(dt, ggplot2::aes(distance)) +
+  ggplot2::geom_histogram(bins = 40) +
+  ggplot2::labs(x = "Haul distance (nmi)", y = "Stations")
+```
+
+## Length composition
+
+If the project needs length-based products, fit the length–weight relationship
+(`ggFishPlots::plot_lw()`) and show the length-group allocation used to split catches. Adapt
+from the compiled individual (`indall`) data.
+
+```{r length, eval=FALSE}
+# ldist <- readRDS(file.path(out_dir, "length-data.rds"))
+# ggFishPlots::plot_lw(ldist, length = "length", weight = "weight")
+```
+
+## Notes
+
+Record anything unusual (survey-specific exclusions, years dropped, duplicates removed,
+gear-width choice) in `memory/`.

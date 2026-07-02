@@ -1,0 +1,49 @@
+# Worked example — beaked redfish (Sebastes mentella), ICES 1-2.
+# Matches ref-index-paper and ref-assessment-index/benchmark/beaked so the generated index can
+# be compared against the published/benchmark result. Use as:
+#   source("<index_template_path>/scaffold.R")
+#   scaffold_index("examples/redfish/config.yaml", target = "../snabeluer-index")
+
+# --- Identity ---
+SPECIES_NAME:  "Beaked redfish"
+SPECIES_SLUG:  "snabeluer"
+SPECIES_LATIN: "Sebastes mentella"
+
+# --- Data selection ---
+FILTER_SP:
+  - "snabeluer"
+SURVEYS:
+  - "EcoS"
+  - "WinterS"
+  - "CoastalS"
+  - "EggaN"
+  - "EggaS"
+USE_SPD: true            # northern/offshore — legacy SPD files still add coverage
+INCLUDE_RUSSIAN: true
+FIRST_YEAR: 1981
+
+# --- Response & products ---
+RESPONSE: "biomass"
+OVER_CM: 30
+LENGTH_GROUPS: ["(0,10]", "(10,15]", "(15,20]", "(20,25]", "(25,30]", "(30,40]", "(40,Inf]"]
+
+# --- Gear width ---
+GEAR_WIDTH: "per_gear"   # 25 m shrimp/Campelen, ~94 m cod/Alfredo
+
+# --- Spatial domain & mesh ---
+CRS: 32633               # UTM 33N
+GRID_KM: 10
+MESH_CUTOFF_KM: 60
+BARRIER: false
+MAX_DEPTH: 1400
+
+# --- Model ---
+FAMILY: "delta_lognormal"
+SPATIOTEMPORAL: "ar1"
+INCLUDE_TEMPERATURE: false
+ASSESSMENT_MODEL: "SPiCT"
+SELECTED_INDEX: "Over 30 cm biomass"
+
+# --- Paths ---
+OUTPUT_DIR: "data/output"
+SOURCE_DIR: "data/source"

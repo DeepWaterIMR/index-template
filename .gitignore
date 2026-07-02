@@ -1,0 +1,61 @@
+# index-template holds INSTRUCTIONS ONLY — never data. These rules are a safety net so that
+# raw Biotic data can never be committed by accident. Do not loosen them.
+
+# --- Raw / intermediate data of any kind ---
+*.rds
+*.rda
+*.RData
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.db
+*.xml
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+
+# --- Working directories where data/outputs might land (anchored to repo root so the
+#     project-template/ skeleton is still committed) ---
+/data/
+/outputs/
+/output/
+/results/
+/private/
+/scratch/
+/logs/
+/review/
+
+# --- Rendered figures (may contain station maps / coordinates) ---
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.tif
+*.tiff
+
+# --- R / RStudio cruft ---
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# --- Quarto / site build ---
+/_site/
+/.quarto/
+*.html
+/*_files/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

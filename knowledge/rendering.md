@@ -1,0 +1,61 @@
+# Rendering, screen sessions, logs, and toggles
+
+Fitting sdmTMB models and rendering the Quarto documents is **time-consuming** (minutes to
+hours). Treat every render as expensive: review the code first, run it detached with a log,
+and cache outputs so you only pay the cost once.
+
+## 1. Review before you render
+
+**Always code-review the changed chunks/scripts before starting a render.** A bug found after
+a two-hour render costs two hours. Run `/code-review` (or a careful self-review) on the
+changed qmd chunks and R scripts, fix the issues, and only then render. This rule is in
+`AGENTS.md` and applies to steps 2–4.
+
+## 2. Caching toggles
+
+Each expensive document exposes toggles (in the YAML `params:` or a setup chunk) that switch
+between *compute* and *load*:
+
+```yaml
+params:
+  refit_model: true      # FALSE → load the saved fit from data/output instead of refitting
+  recompute_grid: true   # FALSE → load the saved prediction grid
+  bias_correct: false    # TRUE only for final index runs (slow)
+```
+
+Workflow: render once with the compute toggles `TRUE` (writes fits, grids, predictions,
+indices to `data/output/`); then **flip them to `FALSE`** so subsequent renders load the saved
+objects and finish in seconds. Never delete `.quarto/` to "force a clean build" — fix the load
+paths instead.
+
+## 3. Run detached in a screen session
+
+Render in a `screen` (or `tmux`) session so the job survives a disconnect, and **write the
+output to a log in `logs/`**:
+
+```bash
+screen -dmS <species>-fit bash -c '
+  quarto render "docs/exploration/fit.qmd" > "logs/fit-$(date +%Y%m%d-%H%M%S).log" 2>&1
+'
+```
+
+Then **tell the user the session name** and how to check it:
+
+```
+Rendering in screen session "<species>-fit". Attach with:  screen -r <species>-fit
+Follow the log with:  tail -f logs/fit-*.log
+```
+
+- List sessions: `screen -ls`. Detach from inside: `Ctrl-a d`.
+- **Suggest running on a server.** For big meshes / many length groups / bias correction,
+  offer to run the render on a compute server to speed things up and free the laptop.
+- Never block the chat waiting for a long render — start it, report the session, and move on.
+
+## 4. Figure and file-size hygiene
+
+- **Raster figures use `fig-format: jpeg`** (density maps, bathymetry). Vector for line plots.
+- Keep rendered **HTML as small as feasible**: prefer jpeg rasters, sensible `fig-dpi`
+  (~150–180 for screen), and avoid embedding huge point layers. Large length-group reports can
+  reach tens of MB — watch the output size.
+- `_run_analysis.R` renders all documents and refreshes data; use it for a full rebuild, but
+  the same review-then-screen-then-toggle discipline applies.

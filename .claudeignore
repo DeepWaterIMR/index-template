@@ -1,0 +1,32 @@
+# Files agents should NOT read automatically. Any local Biotic data extract must stay out of
+# the model's context unless the user explicitly points to it.
+# (Claude Code honours .claudeignore; other agents: treat this as the do-not-read list.)
+
+*.rds
+*.rda
+*.RData
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.db
+*.xml
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.gpkg
+*.shp
+
+/data/
+/outputs/
+/output/
+/results/
+/private/
+/scratch/
+/logs/
+/review/
+
+# The Biotic database default location (outside the repo, listed for clarity)
+# ~/IMR_biotic_BES_database/

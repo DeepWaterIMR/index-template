@@ -1,0 +1,33 @@
+---
+name: reference-sources
+description: The projects index-template's content is adapted from, and what each supplied.
+metadata:
+  type: reference
+  author: claude
+  created: 2026-07-02
+---
+
+# Reference sources
+
+Content was **adapted** (not copied; data/paths stripped) from:
+
+- **ref-index-paper** (public showcase, Vihtakari et al. 2026). Supplied the data-filtering
+  logic (`docs/data/{Redfish bottom trawl, BioticExplorer_database, Compile_all_data}.Rmd`)
+  and the Step 1–3 blueprint (`docs/SI files/SI-Text-{1,2,3}`). Critical filters:
+  `gearcondition %in% 1:2`; `samplequality == 1` except coastal series `cruiseseriescode ==
+  "23"` → `1:2`; drop `stationtype` C/2/A/E; `distance` 0.3–5 nmi; duplicate removal;
+  swept-area density with 25 m / ~94 m gear widths.
+- **ref-assessment-index** `docs/benchmark/beaked/`. Step-4 final report + `*-section.qmd`
+  includes (mesh/barrier/retro/cv/survey-comparison); multiple indices (total, over-30 cm,
+  length groups); selected index `Over 30 cm biomass` (iid + year effect) vs total (ar1).
+  Also had `memory/index_template_plan.md` sketching this template.
+- **sdmTMBexperiments** — the helper package all comparisons/grids/maps call. Coords in km,
+  `coord_multiplier = 1000`; attach the package for ggOceanMaps land data.
+- **spict-template** — the scaffold/AGENTS/memory conventions mirrored here.
+- **BAIT** — the knowledge-pack + global-skills model, and the data-access layer.
+
+**User refinements to the paper defaults:** Russian data INCLUDED by default; NO temperature
+term by default; gear width is a user choice (set width + multiple gears ⇒ geartype stays a
+covariate); code-review before every slow render.
+
+Related: [[architecture]].

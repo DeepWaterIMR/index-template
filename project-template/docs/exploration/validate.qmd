@@ -1,0 +1,80 @@
+---
+title: "{{SPECIES_NAME}} — model validation & selection"
+subtitle: "Step 3 · index-template"
+format:
+  html:
+    toc: true
+    code-fold: true
+    fig-format: jpeg
+    fig-dpi: 160
+    embed-resources: true
+params:
+  run_selection: true    # component ranking + model/family/structure comparison
+  run_mesh_cv: false     # spatial block CV across mesh cutoffs (slow; needs blockCV)
+  run_retro: false       # retrospective (slow)
+execute:
+  warning: false
+  message: false
+---
+
+<!-- Step 3: justify the model. Cross-validation and sensitivity — rank fixed effects and
+random-field structure, select the family and spatiotemporal structure, check mesh resolution
+and retrospective behaviour. Modelled on SI-Text-3-model-selection. Use the sdmTMBexperiments
+helpers; don't hand-roll CV. Each expensive block has its own toggle. Do NOT hard-wrap prose. -->
+
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+source(here::here("R", "00_setup.R"))
+dt   <- readRDS(file.path(out_dir, "compiled-data.rds")) |>
+  dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>
+  dplyr::mutate(value = .data[[response_col]], month = as.integer(month)) |>
+  dplyr::filter(!is.na(value))
+dt   <- sdmTMB::add_utm_columns(dt, ll_names = c("lon", "lat"), utm_crs = dt_crs)
+grid <- readRDS(file.path(out_dir, "prediction-grid.rds"))
+mesh <- sdmTMB::make_mesh(dt, xy_cols = c("X", "Y"), cutoff = cfg$MESH_CUTOFF_KM)
+```
+
+## Model & structure selection
+
+Fit the candidate models, then compare their indices, per-cell prediction differences, and
+sanity with `compare_models()`. Remember the assessment use-case when choosing the
+spatiotemporal structure: total/length indices use `ar1` and no year effect; the
+assessment-selected index often uses `iid` + `year` as a fixed effect (avoids temporal
+smoothing).
+
+```{r selection, eval=params$run_selection}
+fit_ar1 <- readRDS(file.path(out_dir, "model-fit-total.rds"))     # from Step 2
+fit_iid <- update(fit_ar1, spatiotemporal = "iid")
+# add / drop terms and families as candidates, e.g.:
+# fit_nogear <- update(fit_ar1, formula = value ~ 0 + s(month) + s(depth))
+# fit_gamma  <- update(fit_ar1, family = sdmTMB::delta_gamma())
+
+cmp <- compare_models(fit_ar1, fit_iid, newdata = grid, reference_model = 1)
+plot(cmp, type = "index")
+plot(cmp, type = "spatial")
+```
+
+## Mesh sensitivity
+
+```{r mesh-cv, eval=params$run_mesh_cv}
+fit_ar1 <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+mcv <- sdmTMB_mesh_cv(fit_ar1, mesh_cutoffs = c(40, 60, 80, 100), k = 3)
+plot(mcv, metric = "sum_loglik")
+
+mcmp <- compare_meshes(fit_ar1, mesh_cutoffs = c(40, 60, 80, 100), newdata = grid)
+plot(mcmp, type = "index")
+```
+
+## Retrospective
+
+```{r retro, eval=params$run_retro}
+fit_ar1 <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+retro <- sdmTMB_retro(fit_ar1, newdata = grid, nyears = 5)
+plot(retro)
+```
+
+## Decision
+
+State the chosen specification (formula, family, spatiotemporal structure, mesh cutoff,
+barrier) and the evidence for it, and record it in `memory/` as a `decision`. Then proceed to
+Step 4 (`index-final-report`).

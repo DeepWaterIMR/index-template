@@ -1,0 +1,166 @@
+---
+title: "{{SPECIES_NAME}} — data compilation"
+subtitle: "Step 1 · index-template"
+format:
+  html:
+    toc: true
+    code-fold: true
+    fig-format: jpeg
+    fig-dpi: 160
+    embed-resources: true
+params:
+  recompile: true   # FALSE → load the compiled dataset from data/output instead of rebuilding
+execute:
+  warning: false
+  message: false
+---
+
+<!-- Adapt this document for the species during `index-compile-data`. It reads bottom-trawl
+data from the IMR Biotic database (via BAIT) and, optionally, legacy SPD files; applies the
+quantitative-catch filtering from index-template's `data-filtering.md`; removes duplicates;
+computes swept-area density; and saves a compiled dataset with true zeros to data/output.
+Needs a local BES database and an IMR intranet connection. Do NOT hard-wrap prose. -->
+
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+```
+
+```{r config}
+source(here::here("R", "00_setup.R"))
+filter_sp <- cfg$FILTER_SP          # confirm these Norwegian commonname values via BAIT taxaindex
+compiled_path <- file.path(out_dir, "compiled-data.rds")
+```
+
+## Connect to the Biotic database
+
+Data access is provided by **BAIT** (`biotic-connect`). Connect read-only and query lazily;
+`collect()` only the filtered result.
+
+```{r connect, eval=params$recompile}
+# See BAIT biotic-connect. Example:
+# con    <- DBI::dbConnect(duckdb::duckdb(Sys.getenv("BES_DATABASE_PATH")), read_only = TRUE)
+# stnall <- dplyr::tbl(con, "stnall")   # station catches
+# indall <- dplyr::tbl(con, "indall")   # individual / length records
+```
+
+## Station filter — make catches quantitative
+
+Reproduce index-template `data-filtering.md` **exactly**. The `samplequality` rule is
+conditional on the survey series; the `gearcondition` and `stationtype` tags are what make a
+haul a valid, standardised density observation.
+
+```{r station-filter, eval=params$recompile}
+stn <- stnall |>
+  dplyr::filter(
+    gearcategory == "Bottom trawls",
+    missiontypename %in% c("Forskningsfartøy", "Leiefartøy"),
+    startyear >= cfg$FIRST_YEAR,
+    startyear <  lubridate::year(Sys.Date()),
+    !is.na(catchweight), !is.na(distance),
+    latitudestart > 0,
+    gearcondition %in% 1:2,
+    !stationtype %in% c("C", "2", "A", "E"),
+    distance >= 0.3, distance <= 5
+    # !gear %in% obsolete_gear_codes,          # add survey-specific obsolete gear codes
+    # cruiseseries %in% cfg$SURVEYS             # restrict to the chosen surveys
+  ) |>
+  dplyr::collect() |>
+  dplyr::filter(
+    dplyr::if_else(cruiseseriescode == "23", samplequality %in% 1:2, samplequality %in% 1)
+  ) |>
+  dplyr::mutate(id = paste(cruise, platformname, serialnumber, sep = "_"))
+
+# Russian data are INCLUDED by default. To exclude (config INCLUDE_RUSSIAN: false):
+if (!isTRUE(cfg$INCLUDE_RUSSIAN))
+  stn <- dplyr::filter(stn, !nation %in% c("140", "90"))
+```
+
+## Remove duplicates
+
+The Biotic database can contain duplicate/inconsistent records. Flag ids where the length
+sample exceeds the catch, drop them, and write a report to `review/`.
+
+```{r duplicates, eval=params$recompile}
+dupe_ids <- stn |>
+  dplyr::filter(commonname %in% filter_sp) |>
+  dplyr::group_by(cruiseseriescode, id, commonname) |>
+  dplyr::reframe(
+    catchweight        = sum(catchweight, na.rm = TRUE),
+    catchcount         = sum(catchcount, na.rm = TRUE),
+    lengthsampleweight = sum(lengthsampleweight, na.rm = TRUE),
+    lengthsamplecount  = sum(lengthsamplecount, na.rm = TRUE)
+  ) |>
+  dplyr::filter(catchcount < lengthsamplecount | catchweight < lengthsampleweight)
+
+dir.create(here::here("review"), showWarnings = FALSE)
+readr::write_csv(dupe_ids, here::here("review", "duplicate-station-report.csv"))
+stn <- dplyr::filter(stn, !id %in% dupe_ids$id)
+```
+
+## Optional: legacy SPD files
+
+Only for northern/offshore species (`USE_SPD: true`). Drop SPD years/series already in Biotic
+to avoid double counting; tag the source. Southern/coastal species: skip.
+
+```{r spd, eval=params$recompile && isTRUE(cfg$USE_SPD)}
+# stn_spd <- RstoxUtils::processBioticFile(file.path(src_dir, "<spd-file>")) ...
+# stn <- dplyr::bind_rows(dplyr::mutate(stn, source = "NMD"),
+#                         dplyr::mutate(stn_spd, source = "SPD"))
+```
+
+## True zeros and swept-area density
+
+Keep stations with no catch of the target species as real zeros, then compute density. Gear
+width follows `config.yaml` `GEAR_WIDTH` (see the gear-width note there).
+
+```{r response, eval=params$recompile}
+gear_width_m <- function(geartype) {
+  if (identical(cfg$GEAR_WIDTH, "per_gear")) {
+    dplyr::case_when(geartype == "Shrimp" ~ 25, geartype == "Cod" ~ 25 * 3.746,
+                     TRUE ~ NA_real_)
+  } else {
+    as.numeric(cfg$GEAR_WIDTH)          # single set width; keep geartype in the model formula
+  }
+}
+
+dt <- stn |>
+  # join target-species catch onto the full retained-station set so absences become zeros:
+  dplyr::mutate(
+    biomass   = dplyr::coalesce(catchweight_sp, 0),   # <- adapt to your join of species catch
+    count     = dplyr::coalesce(catchcount_sp, 0),
+    gear_width = gear_width_m(geartype),
+    swept_area = distance * (gear_width / 1852),        # nmi^2
+    rho_biomass   = biomass / swept_area,
+    rho_abundance = count   / swept_area
+  )
+
+# Fill missing/invalid bottom depth from GEBCO:
+dt$depth <- ggOceanMaps::get_depth(
+  dplyr::rename(dt, lon = longitudestart, lat = latitudestart),
+  bathy.style = "rc", bind = FALSE
+)
+```
+
+## Save
+
+```{r save, eval=params$recompile}
+saveRDS(dt, compiled_path)
+```
+
+```{r load, eval=!params$recompile}
+dt <- readRDS(compiled_path)
+```
+
+## Summary
+
+```{r summary}
+dplyr::summarise(dt,
+  stations = dplyr::n(),
+  years    = dplyr::n_distinct(startyear),
+  zeros    = mean(rho_biomass == 0)
+)
+```
+
+After compiling, generate the **data report** (`{{SPECIES_SLUG}}-data-report.qmd`), then move
+to Step 2 (`index-fit-model`). Record the survey list, filters, and duplicate count in
+`memory/`.
