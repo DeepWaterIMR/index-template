@@ -19,8 +19,9 @@ execute:
 
 <!-- Step 2: the first FEASIBLE model — total {{SPECIES_NAME}} biomass (or abundance), NO
 length groups, NO temperature — to confirm the method works before adding complexity.
-Modelled on SI-Text-2-sdmTMB. Read index-template's sdmtmb.md and sdmtmbexperiments.md. Do NOT
-hard-wrap prose. -->
+Improve this document directly as the routine matures — see knowledge/workflow.md if you need
+background on the original method. Read index-template's sdmtmb.md and sdmtmbexperiments.md.
+Do NOT hard-wrap prose. -->
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = here::here())

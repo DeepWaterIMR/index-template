@@ -1,13 +1,13 @@
 ---
 name: index-validate-model
-description: Step 3 of the index workflow — validate and select the sdmTMB model via cross-validation and sensitivity analysis (fixed-effect ranking, family, spatiotemporal structure, mesh resolution, retrospective). Use after a first feasible model works (step 2). Modelled on SI-Text-3-model-selection.
+description: Step 3 of the index workflow — validate and select the sdmTMB model via cross-validation and sensitivity analysis (fixed-effect ranking, family, spatiotemporal structure, mesh resolution, retrospective). Use after a first feasible model works (step 2).
 ---
 
 # Step 3 — Validate / select the model
 
 Goal: justify the model. Rank components by predictive skill, select the family and
 spatiotemporal structure, and check robustness to mesh resolution and to dropping recent
-years. Modelled on `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd`.
+years. (For background material, see the lookup table in `knowledge/workflow.md`.)
 
 Read `knowledge/sdmtmbexperiments.md` first. Use the helpers — don't hand-roll CV loops.
 

@@ -22,7 +22,7 @@
 ├── docs/
 │   ├── data/            # STEP 1 — data compilation + data report
 │   │   ├── compile-data.qmd            # reads BES (+ optional SPD), filters, dedupes, saves
-│   │   └── <species>-data-report.qmd   # the data report (SI-Text-1 style)
+│   │   └── <species>-data-report.qmd   # the data report
 │   ├── exploration/     # STEPS 2–3 — fit & validate
 │   │   ├── fit.qmd                     # first feasible model (no length groups)
 │   │   └── validate.qmd                # model selection / CV / retro

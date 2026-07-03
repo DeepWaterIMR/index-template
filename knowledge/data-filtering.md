@@ -6,10 +6,10 @@ swept area, and if stations with no catch of the target species are kept as **tr
 Getting the `gearcondition`, `samplequality`, and `stationtype` tags wrong — or leaving
 duplicates in — silently corrupts the index. Reproduce this logic; do not improvise.
 
-The logic below is distilled from `ref-index-paper/docs/data/{Redfish bottom trawl,
-BioticExplorer_database, Compile_all_data}.Rmd` and `SI-Text-1-data.qmd`. Access the Biotic
-database through BAIT (`biotic-connect`); the tables are `stnall` (station catches), `indall`
-(individual/length records), `mission`, and the `gearindex`/`taxaindex` lookups.
+The logic below is distilled from the background material listed in `workflow.md` (the
+IMR-internal reference project's data-compilation notebooks and data report). Access the
+Biotic database through BAIT (`biotic-connect`); the tables are `stnall` (station catches),
+`indall` (individual/length records), `mission`, and the `gearindex`/`taxaindex` lookups.
 
 ## Station-level filter
 

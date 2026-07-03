@@ -39,11 +39,11 @@ Use BAIT for data access: `biotic-server-setup` (if the DB is missing/stale), `b
 
 ## Data report
 
-Generate `docs/data/<slug>-data-report.qmd`, modelled on
-`ref-index-paper/docs/SI files/SI-Text-1-data.qmd`: station maps (ggOceanMaps), station counts
-by year/depth, response-variable distributions, trawl-parameter summaries (distance, duration,
+Generate `docs/data/<slug>-data-report.qmd`: station maps (ggOceanMaps), station counts by
+year/depth, response-variable distributions, trawl-parameter summaries (distance, duration,
 door spread, wire ratio), and the length–weight / length-group allocation. Use
-`fig-format: jpeg` for rasters; keep the HTML small.
+`fig-format: jpeg` for rasters; keep the HTML small. (For background material, see the lookup
+table in `knowledge/workflow.md`.)
 
 ## Before rendering
 

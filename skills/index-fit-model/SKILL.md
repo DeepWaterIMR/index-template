@@ -1,13 +1,13 @@
 ---
 name: index-fit-model
-description: Step 2 of the index workflow — fit the first feasible sdmTMB model (no length groups) to confirm the method works, build the prediction grid, and compute a survey index. Use after the data are compiled (step 1) and the user is ready to model. Modelled on SI-Text-2-sdmTMB.
+description: Step 2 of the index workflow — fit the first feasible sdmTMB model (no length groups) to confirm the method works, build the prediction grid, and compute a survey index. Use after the data are compiled (step 1) and the user is ready to model.
 ---
 
 # Step 2 — Fit the first feasible model
 
 Goal: get a single, working total-biomass (or abundance) index. **Start simple — no length
-groups, no temperature** — to confirm the method works before adding complexity. Modelled on
-`ref-index-paper/docs/SI files/SI-Text-2-sdmTMB.qmd`.
+groups, no temperature** — to confirm the method works before adding complexity. (For
+background material, see the lookup table in `knowledge/workflow.md`.)
 
 Read `knowledge/sdmtmb.md` and `knowledge/sdmtmbexperiments.md` first, and skim the sdmTMB docs
 (<https://pbs-assess.github.io/sdmTMB/>). **Attach `library(sdmTMBexperiments)`.**

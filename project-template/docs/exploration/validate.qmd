@@ -19,7 +19,8 @@ execute:
 
 <!-- Step 3: justify the model. Cross-validation and sensitivity — rank fixed effects and
 random-field structure, select the family and spatiotemporal structure, check mesh resolution
-and retrospective behaviour. Modelled on SI-Text-3-model-selection. Use the sdmTMBexperiments
+and retrospective behaviour. Improve this document directly as the routine matures — see
+knowledge/workflow.md if you need background on the original method. Use the sdmTMBexperiments
 helpers; don't hand-roll CV. Each expensive block has its own toggle. Do NOT hard-wrap prose. -->
 
 ```{r setup}

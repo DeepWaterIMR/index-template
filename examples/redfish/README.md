@@ -19,14 +19,15 @@ Then follow the four steps (`index-compile-data` → `index-fit-model` →
 `index-validate-model` → `index-final-report`). Compiling the data needs a local BES database
 and an IMR intranet connection.
 
-## Reference materials (not distributed here — no data)
+## Background material (not distributed here — no data)
 
-The method and expected results are documented in:
+Steps 1–4 are index-template's own documents in `project-template/docs/`, improved directly as
+the routine matures — they are not named after or tied to any source paper's internal
+document names. If you want the history behind the method, or expected results to sanity
+check against, see:
 
-- **ref-index-paper** (public showcase) — the SI files `SI-Text-1-data`, `SI-Text-2-sdmTMB`,
-  `SI-Text-3-model-selection` are the blueprint for Steps 1–3.
-- **ref-assessment-index** `docs/benchmark/beaked/` — the blueprint for the Step-4 final
-  report and its optional sections.
+- The (IMR-internal) reference projects listed in
+  [`knowledge/workflow.md`](../../knowledge/workflow.md).
 - Vihtakari et al. (2026), *ICES J. Mar. Sci.*,
   [doi:10.1093/icesjms/fsag009](https://doi.org/10.1093/icesjms/fsag009).
 

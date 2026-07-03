@@ -13,10 +13,12 @@ execute:
   message: false
 ---
 
-<!-- Data report for the compiled {{SPECIES_NAME}} dataset. Modelled on SI-Text-1-data. It
+<!-- Data report for the compiled {{SPECIES_NAME}} dataset (index-template Step 1). It
 describes and validates the data that go into the model: spatial coverage, sampling through
-time and depth, the response distribution, trawl parameters, and length composition. Do NOT
-hard-wrap prose. Raster maps use fig-format jpeg to keep the HTML small. -->
+time and depth, the response distribution, trawl parameters, and length composition. Improve
+this document directly as the routine matures — see knowledge/workflow.md if you need
+background on the original method. Do NOT hard-wrap prose. Raster maps use fig-format jpeg to
+keep the HTML small. -->
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = here::here())

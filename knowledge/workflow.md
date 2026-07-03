@@ -4,15 +4,23 @@ Building a survey index is a **four-step** process. Each step is a skill and pro
 more Quarto documents in the generated project. Do the steps in order; don't jump to modelling
 before the data are clean, and don't add complexity before a simple model works.
 
-Reference documents (read them when adapting a step — they are the blueprint):
+index-template's own steps and documents have their own names (below) — they are **not**
+called by the source paper's internal names. This table exists only so an agent that needs to
+consult the original background material knows what to look for in those (separate,
+IMR-internal) repos:
 
-| This project | Reference (Vihtakari et al. 2026 materials) |
+| index-template document | Background material, if you need to consult it (Vihtakari et al. 2026) |
 |---|---|
 | `docs/data/*.qmd` (compile) | `ref-index-paper/docs/data/{Redfish bottom trawl, BioticExplorer_database, Compile_all_data}.Rmd` |
 | `docs/data/<species>-data-report.qmd` | `ref-index-paper/docs/SI files/SI-Text-1-data.qmd` |
 | `docs/exploration/fit.qmd` | `ref-index-paper/docs/SI files/SI-Text-2-sdmTMB.qmd` |
 | `docs/exploration/validate.qmd` | `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd` |
 | `docs/<species>/report.qmd` (+ `*-section.qmd`) | `ref-assessment-index/docs/benchmark/beaked/*` |
+
+As the routine is improved, index-template's documents will diverge from this original
+material — that's expected. Use the table to find *background*, not to decide what the
+current documents should contain; **project-template/docs/ is the current, evolving source of
+truth for what each step actually does.**
 
 ## Step 0 — Scaffold (skill: `index-new-project`)
 
@@ -32,9 +40,9 @@ but structured project ready for step 1. See `project-structure.md`.
    `samplequality`, and `stationtype` tags that make catches quantitative, plus duplicate
    removal and swept-area density.
 3. Compile everything into one dataset with true absences (zero catches at fished stations).
-4. Generate the **data report** (`<species>-data-report.qmd`, modelled on SI-Text-1): station
-   maps, counts by year/depth, response distributions, trawl parameters, length–weight and
-   length-group allocation.
+4. Generate the **data report** (`<species>-data-report.qmd`): station maps, counts by
+   year/depth, response distributions, trawl parameters, length–weight and length-group
+   allocation.
 
 **Duplicates warning:** the Biotic database can contain duplicate records, and data are still
 being added to Biotic (making SPD files gradually obsolete). Detect duplicates and write a
@@ -43,7 +51,7 @@ BES only.
 
 ## Step 2 — Fit the first feasible model (skill: `index-fit-model`)
 
-Modelled on SI-Text-2. **Start without length groups** — a single total-biomass (or
+The first feasible model. **Start without length groups** — a single total-biomass (or
 abundance) model — to confirm the method works before adding complexity.
 
 - `delta_lognormal()` family, `spatial = "on"`, `spatiotemporal = "ar1"`, `time = "year"`.
@@ -53,10 +61,10 @@ abundance) model — to confirm the method works before adding complexity.
 
 ## Step 3 — Validate / select the model (skill: `index-validate-model`)
 
-Modelled on SI-Text-3. Cross-validation and sensitivity: rank fixed effects and random-field
-structure by predictive skill, select the family and the spatiotemporal structure, and check
-mesh resolution and retrospective behaviour. Use `sdmTMB_mesh_cv`, `compare_models`,
-`compare_meshes`, `sdmTMB_retro`, `mohns_rho`.
+Cross-validation and sensitivity: rank fixed effects and random-field structure by predictive
+skill, select the family and the spatiotemporal structure, and check mesh resolution and
+retrospective behaviour. Use `sdmTMB_mesh_cv`, `compare_models`, `compare_meshes`,
+`sdmTMB_retro`, `mohns_rho`.
 
 ## Step 4 — Final report + extensions (skill: `index-final-report`)
 
