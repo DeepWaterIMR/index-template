@@ -56,10 +56,7 @@ This repo is **public and contains instructions only — never data**:
 | **3.** Validate / select the model | [`index-validate-model`](skills/index-validate-model/SKILL.md) |
 | **4.** Final report + extensions | [`index-final-report`](skills/index-final-report/SKILL.md) |
 
-Each step's document lives in [`project-template/docs/`](project-template/docs/) and is
-index-template's own, evolving implementation — improve it directly as the routine matures.
-[`knowledge/workflow.md`](knowledge/workflow.md) points to the (IMR-internal) background
-material the method was originally distilled from, if you want the history.
+Each step's document lives in [`project-template/docs/`](project-template/docs/) and is index-template's own, evolving implementation — improve it directly as the routine matures. [`knowledge/workflow.md`](knowledge/workflow.md) points to the (IMR-internal) background material the method was originally distilled from, if you want the history.
 
 Long renders are compiled with [`index-render`](skills/index-render/SKILL.md) in a screen session with a log in `logs/`.
 
@@ -71,6 +68,10 @@ Long renders are compiled with [`index-render`](skills/index-render/SKILL.md) in
 - [`project-template/`](project-template/) — the skeleton copied into each new project.
 - [`scaffold.R`](scaffold.R) — stamps a project from `config.yaml`.
 - [`examples/redfish/`](examples/redfish/) — a worked example.
+
+## 🚨 You are still in charge
+
+This repo is designed to create a survey index template. It speeds up the data and model compilation, but does not create ready indices for assessment. It provides a place to start, not a final deliverable. Expert judgment is required for the final assessment.
 
 ## 📖 References
 
