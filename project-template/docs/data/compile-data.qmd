@@ -59,7 +59,7 @@ stn <- stnall |>
     !is.na(catchweight), !is.na(distance),
     latitudestart > 0,
     gearcondition %in% 1:2,
-    !stationtype %in% c("C", "2", "A", "E"),
+    is.na(stationtype) | !stationtype %in% c("C", "2", "A", "E"),
     distance >= 0.3, distance <= 5
     # !gear %in% obsolete_gear_codes,          # add survey-specific obsolete gear codes
     # cruiseseries %in% cfg$SURVEYS             # restrict to the chosen surveys

@@ -27,7 +27,7 @@ stn <- stnall |>
     !is.na(distance),
     latitudestart > 0,
     gearcondition %in% 1:2,           # gear in good/acceptable working condition
-    !stationtype %in% c("C", "2", "A", "E"),   # drop calibration/duplicate/anchor/empty hauls
+    is.na(stationtype) | !stationtype %in% c("C", "2", "A", "E"), # retain missing; drop calibration/duplicate/anchor/empty hauls
     distance >= 0.3, distance <= 5,   # trawl haul length in nautical miles
     !gear %in% obsolete_gear_codes    # drop obsolete/non-standard trawl types (survey-specific)
   ) |>
@@ -48,7 +48,7 @@ stn <- stnall |>
 - **`gearcondition %in% 1:2`** — the gear was in good (1) or acceptable (2) working condition.
   Higher codes mean damage/deterioration and are **not** quantitative. Always apply this.
 - **`stationtype`** — `"C"`, `"2"`, `"A"`, `"E"` are calibration, duplicate, anchor-test, and
-  empty/aborted hauls. They are not standard fishing stations and must be excluded.
+  empty/aborted hauls. They are not standard fishing stations and must be excluded. Missing values are retained explicitly: this is essential because a lazy DuckDB filter translates a bare `!stationtype %in% ...` to SQL, where `NULL` values would otherwise be dropped.
 - **`samplequality`** — `1` = highest quality, `2` = acceptable. Standard surveys keep only
   `1`; the **coastal survey series (`cruiseseriescode == "23"`)** keeps `1:2`. This
   conditional is essential — do not flatten it to one rule.
