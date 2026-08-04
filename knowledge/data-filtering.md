@@ -17,19 +17,22 @@ Apply to `stnall`. `filter_sp` holds the Norwegian `commonname` value(s) of the 
 species (confirm via BAIT's `taxaindex` — don't guess).
 
 ```r
+last_complete_year <- as.integer(format(Sys.Date(), "%Y"))
+obsolete_gear_codes <- unique(stats::na.omit(obsolete_gear_codes))
+
 stn <- stnall |>
   dplyr::filter(
     gearcategory == "Bottom trawls",
     missiontypename %in% c("Forskningsfartøy", "Leiefartøy"),  # research + charter vessels
     startyear > 1980,
-    startyear < lubridate::year(Sys.Date()),                  # drop the incomplete current year
+    startyear < last_complete_year,                            # drop the incomplete current year
     !is.na(catchweight),                                      # catchweight is the reliable measure
     !is.na(distance),
     latitudestart > 0,
     gearcondition %in% 1:2,           # gear in good/acceptable working condition
     is.na(stationtype) | !stationtype %in% c("C", "2", "A", "E"), # retain missing; drop calibration/duplicate/anchor/empty hauls
     distance >= 0.3, distance <= 5,   # trawl haul length in nautical miles
-    !gear %in% obsolete_gear_codes    # drop obsolete/non-standard trawl types (survey-specific)
+    is.na(gear) | !gear %in% obsolete_gear_codes # retain missing; drop obsolete/non-standard trawl types
   ) |>
   dplyr::collect() |>
   # sample-quality is conditional on the survey series:
@@ -54,6 +57,8 @@ stn <- stnall |>
   conditional is essential — do not flatten it to one rule.
 - **`distance` 0.3–5 nmi** — very short or very long hauls are unreliable for swept area.
 - **`missiontypename`** — keep research and charter vessels only.
+- **`last_complete_year`** — calculate this scalar in R *before* the lazy query. Calling a date-extraction function inside a DuckDB filter can be translated as invalid SQL rather than a year literal.
+- **`obsolete_gear_codes`** — remove missing values from this small R vector before filtering. The explicit `is.na(gear) | ...` retains a missing gear value, matching the post-collection R semantics; SQL would otherwise drop it.
 
 ### Russian data — INCLUDED by default
 

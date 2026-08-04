@@ -53,8 +53,8 @@ build_formula <- function(cfg, has_multiple_gears = TRUE) {
 }
 
 # --- Paths ------------------------------------------------------------------------------
-out_dir <- cfg$OUTPUT_DIR %||% "data/output"
-src_dir <- cfg$SOURCE_DIR %||% "data/source"
+out_dir <- here::here(cfg$OUTPUT_DIR %||% "data/output")
+src_dir <- here::here(cfg$SOURCE_DIR %||% "data/source")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 # --- Theme ------------------------------------------------------------------------------

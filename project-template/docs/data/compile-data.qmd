@@ -29,6 +29,7 @@ knitr::opts_knit$set(root.dir = here::here())
 source(here::here("R", "00_setup.R"))
 filter_sp <- cfg$FILTER_SP          # confirm these Norwegian commonname values via BAIT taxaindex
 compiled_path <- file.path(out_dir, "compiled-data.rds")
+last_complete_year <- as.integer(format(Sys.Date(), "%Y")) # calculate in R; DuckDB receives a numeric literal
 ```
 
 ## Connect to the Biotic database
@@ -55,13 +56,13 @@ stn <- stnall |>
     gearcategory == "Bottom trawls",
     missiontypename %in% c("Forskningsfartøy", "Leiefartøy"),
     startyear >= cfg$FIRST_YEAR,
-    startyear <  lubridate::year(Sys.Date()),
+    startyear < last_complete_year,
     !is.na(catchweight), !is.na(distance),
     latitudestart > 0,
     gearcondition %in% 1:2,
     is.na(stationtype) | !stationtype %in% c("C", "2", "A", "E"),
     distance >= 0.3, distance <= 5
-    # !gear %in% obsolete_gear_codes,          # add survey-specific obsolete gear codes
+    # is.na(gear) | !gear %in% obsolete_gear_codes, # add non-missing survey-specific obsolete gear codes
     # cruiseseries %in% cfg$SURVEYS             # restrict to the chosen surveys
   ) |>
   dplyr::collect() |>
