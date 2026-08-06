@@ -19,13 +19,13 @@ every answer for `memory/scaffold-interview.md`.
 
 1. **Species** — Norwegian `commonname`(s) for `filter_sp` (confirm via BAIT `taxaindex`),
    plus scientific name and a display name/slug.
-2. **Surveys** — which cruise series / surveys provide bottom-trawl data **with true
+2. **Surveys and cruise series** — which individual surveys provide bottom-trawl data **with true
    absences**? Include/exclude rules. (List candidates from the database via BAIT.)
 3. **Distribution & SPD** — is the species northern/offshore or **southern/coastal**? For
    southern/coastal species, SPD files add little — **suggest BES only** (`USE_SPD: false`).
-4. **Gear width** — use **gear-type-specific widths** (~25 m shrimp/Campelen, ~94 m cod/
-   Alfredo) or a **single set width**? ⚠️ If a set width is chosen **and** the data have more
-   than one major gear type, **`geartype` must be a model covariate** — note this now.
+4. **Gear width** — default to a common 25 m effective width for all trawls. If multiple gears
+   are represented, keep `geartype` as a fixed effect; revert to gear-specific widths only when
+   diagnostics justify the extra complexity.
 5. **Response & length groups** — biomass or abundance density? Which products: total biomass,
    over-X-cm biomass (what threshold?), length-group abundances (which breaks)?
 6. **Assessment model** — what consumes the index (e.g. SPiCT)? This drives the

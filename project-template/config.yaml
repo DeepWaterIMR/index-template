@@ -11,7 +11,7 @@ SPECIES_LATIN: "{{SPECIES_LATIN}}"    # binomial, e.g. "Sebastes mentella"
 # --- Data selection ---------------------------------------------------------------------
 FILTER_SP:                            # Norwegian commonname value(s) (confirm via BAIT taxaindex)
   - "snabeluer"
-SURVEYS:                              # cruise series / surveys to include (with true absences)
+SURVEYS:                              # cruise-series labels (groups of surveys) to include
   - "EcoS"
   - "WinterS"
   - "EggaN"
@@ -25,13 +25,18 @@ OVER_CM: 30                           # threshold for the "over-X-cm biomass" pr
 LENGTH_GROUPS: ["(0,10]", "(10,15]", "(15,20]", "(20,25]", "(25,30]", "(30,40]", "(40,Inf]"]
 
 # --- Gear width -------------------------------------------------------------------------
-# "per_gear" uses gear-type-specific widths (25 m shrimp/Campelen, ~94 m cod/Alfredo).
-# A single number (e.g. 25) uses one set width for all gears — in which case, if the data
-# contain >1 major gear type, GEARTYPE MUST stay a covariate in the model formula.
-GEAR_WIDTH: "per_gear"
+# A single number uses one effective width for all gears. Keep geartype as a model fixed effect
+# when more than one major gear type is represented.
+GEAR_WIDTH: 25
 
 # --- Spatial domain & mesh --------------------------------------------------------------
+REGION: "ALL"                         # feature/layer name used by a multi-region project
+REGION_SLUG: "all"                    # filename-safe region identifier, e.g. N62 or S62
+REGION_FILE: "data/source/prediction_region.gpkg"
+REGION_LAYER: "prediction_region"
 CRS: 32633                            # projected CRS (EPSG); 32633 = UTM 33N
+MAP_CRS: null                          # optional map display CRS; defaults to Arctic LAEA (EPSG:3995)
+MAP_SHAPEFILES: null                   # optional ggOceanMaps shapefile set; defaults to Arctic
 GRID_KM: 10                           # prediction grid cell size (km)
 MESH_CUTOFF_KM: 60                    # make_mesh cutoff (km)
 BARRIER: false                        # add a land barrier mesh?

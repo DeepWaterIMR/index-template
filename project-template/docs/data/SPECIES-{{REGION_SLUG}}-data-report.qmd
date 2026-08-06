@@ -1,0 +1,176 @@
+---
+title: "{{SPECIES_NAME}} — {{REGION_SLUG}} data overview"
+subtitle: "Step 2 of 2 · data overview"
+date: today
+date-format: "YYYY-MM-DD"
+published-title: "VERSION"
+format:
+  html:
+    toc: true
+    code-fold: true
+    fig-format: jpeg
+    fig-dpi: 160
+    embed-resources: true
+crossref:
+  fig-title: "Figure"
+  tbl-title: "Table"
+  fig-prefix: "Figure"
+  tbl-prefix: "Table"
+execute:
+  warning: false
+  message: false
+---
+
+<!-- This document is the compiled-data overview. Survey selection, survey positions, gear,
+timing, and filtering belong in compile-data.qmd. Keep the region in the filename when a
+project has separate N62/S62 (or equivalent) documents. Every figure and table must have a
+caption; avoid duplicating figures between the two Step 1 documents. -->
+
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+source(here::here("R", "00_setup.R"))
+dt <- readRDS(file.path(out_dir, "compiled-data.rds"))
+diagnostics_path <- file.path(out_dir, "compile-diagnostics.rds")
+diagnostics <- if (file.exists(diagnostics_path)) readRDS(diagnostics_path) else NULL
+metadata_path <- file.path(out_dir, "compile-metadata.rds")
+metadata <- if (file.exists(metadata_path)) readRDS(metadata_path) else list(data_downloaded_at_label = "Not recorded")
+```
+
+This document and the associated analyses are based on
+[index-template](https://github.com/DeepWaterIMR/index-template) and were developed with
+researcher-supervised generative AI. Add the project-specific authors to the YAML header.
+
+The compiled dataset was extracted from the IMR Biotic database on
+`r metadata$data_downloaded_at_label`.
+
+## Overview
+
+```{r overview}
+knitr::kable(
+  dt |>
+    dplyr::summarise(
+      `Stations` = format(dplyr::n(), big.mark = " "),
+      `Years` = paste0(min(startyear), "–", max(startyear)),
+      `Cruise series` = format(dplyr::n_distinct(cruiseseries), big.mark = " "),
+      `Positive stations` = format(sum(rho_biomass > 0, na.rm = TRUE), big.mark = " "),
+      `Zero stations (%)` = round(100 * mean(rho_biomass == 0, na.rm = TRUE), 1)
+    ),
+  caption = "Overview of the compiled {{SPECIES_NAME}} {{REGION_SLUG}} station dataset."
+)
+```
+
+```{r survey-response-table}
+knitr::kable(
+  dt |>
+    dplyr::group_by(cruiseseries) |>
+    dplyr::summarise(
+      hauls = dplyr::n(),
+      positive_hauls = sum(rho_biomass > 0, na.rm = TRUE),
+      zero_fraction = mean(rho_biomass == 0, na.rm = TRUE),
+      median_positive_density = median(rho_biomass[rho_biomass > 0], na.rm = TRUE),
+      .groups = "drop"
+    ),
+  caption = "Station-level response summaries by cruise series."
+)
+```
+
+## Station positions
+
+```{r station-map}
+#| fig-cap: "Final retained station positions in the {{REGION_SLUG}} prediction region. Points distinguish true-zero and positive target-species hauls."
+sp <- dt |> dplyr::filter(!is.na(longitudestart), !is.na(latitudestart))
+ggOceanMaps::basemap(data = sp, bathymetry = TRUE, bathy.style = "rbg") +
+  ggspatial::geom_spatial_point(
+    data = sp,
+    ggplot2::aes(
+      x = longitudestart,
+      y = latitudestart,
+      colour = rho_biomass > 0
+    ),
+    size = 0.5,
+    alpha = 0.5
+  ) +
+  ggplot2::scale_colour_manual(
+    values = c(`FALSE` = "grey65", `TRUE` = "firebrick"),
+    labels = c(`FALSE` = "True zero", `TRUE` = "Positive"),
+    name = NULL
+  ) +
+  ggplot2::labs(x = "Longitude", y = "Latitude")
+```
+
+## Sampling through time and depth
+
+```{r annual-stations}
+#| fig-cap: "Number of retained hauls by year and cruise series, separated into target-positive and true-zero hauls."
+dt |>
+  dplyr::count(startyear, cruiseseries, caught = rho_biomass > 0) |>
+  ggplot2::ggplot(ggplot2::aes(startyear, n, fill = caught)) +
+  ggplot2::geom_col() +
+  ggplot2::facet_wrap(~cruiseseries, scales = "free_y") +
+  ggplot2::labs(x = "Year", y = "Retained hauls", fill = "Target caught")
+```
+
+```{r depth}
+#| fig-cap: "Distribution of recorded bottom depth in the compiled {{REGION_SLUG}} station dataset."
+dplyr::filter(dt, is.finite(depth)) |>
+  ggplot2::ggplot(ggplot2::aes(depth)) +
+  ggplot2::geom_histogram(bins = 40, fill = "grey45", colour = "white") +
+  ggplot2::labs(x = "Bottom depth (m)", y = "Retained hauls")
+```
+
+## Response distribution
+
+```{r response}
+#| fig-cap: "Positive swept-area density distribution for the compiled target species. The x-axis is logarithmic; true-zero hauls are retained in the compiled dataset."
+dt |>
+  dplyr::filter(rho_biomass > 0) |>
+  ggplot2::ggplot(ggplot2::aes(rho_biomass)) +
+  ggplot2::geom_histogram(bins = 40, fill = "steelblue", colour = "white") +
+  ggplot2::scale_x_log10() +
+  ggplot2::labs(x = "Positive biomass density", y = "Positive hauls")
+```
+
+## Trawl parameters
+
+```{r trawl}
+#| fig-cap: "Distribution of retained tow distance by broad gear type. The valid haul range is configured in the compilation document."
+ggplot2::ggplot(dt, ggplot2::aes(distance, fill = geartype)) +
+  ggplot2::geom_histogram(bins = 40, colour = "white") +
+  ggplot2::facet_wrap(~geartype, scales = "free_y") +
+  ggplot2::labs(x = "Tow distance (nmi)", y = "Retained hauls", fill = "Gear type")
+```
+
+## Length products
+
+If the project has length-based products, adapt this section to the compiled length allocation.
+Keep the threshold definition and missing-length treatment explicit. Positive stations without
+usable lengths should remain available for total biomass while being missing from the
+length-specific products. Caption every figure and table.
+
+```{r length, eval=FALSE}
+#| fig-cap: "Length-group allocation of positive station biomass in the {{REGION_SLUG}} dataset."
+# ldist <- readRDS(file.path(out_dir, "length-data.rds"))
+# ggFishPlots::plot_lw(ldist, length = "length", weight = "weight")
+```
+
+```{r length-check, eval=FALSE}
+#| label: tbl-length-check
+#| tbl-cap: "Checks on the length-based biomass allocation."
+# length_check <- tibble::tibble(
+#   check = c("Length-weight source", "Largest split discrepancy"),
+#   value = c(diagnostics$length_weight_source, max_split_discrepancy)
+# )
+# knitr::kable(length_check)
+```
+
+## Diagnostics
+
+```{r diagnostics, eval=FALSE}
+#| tbl-cap: "Compilation diagnostics and exclusions."
+# diagnostics$survey_audit
+# diagnostics$invalid_target_catches
+# diagnostics$positive_stations_without_lengths
+```
+
+Record unusual exclusions, missing measurements, gear-width choices, and survey-specific
+decisions in the project `memory/` folder.

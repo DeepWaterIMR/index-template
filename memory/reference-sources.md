@@ -16,7 +16,8 @@ Content was **adapted** (not copied; data/paths stripped) from:
   and the Step 1–3 blueprint (`docs/SI files/SI-Text-{1,2,3}`). Critical filters:
   `gearcondition %in% 1:2`; `samplequality == 1` except coastal series `cruiseseriescode ==
   "23"` → `1:2`; drop `stationtype` C/2/A/E; `distance` 0.3–5 nmi; duplicate removal;
-  swept-area density with 25 m / ~94 m gear widths.
+  swept-area density with gear-specific 25 m / ~94 m widths in the historical redfish example;
+  the current template default is a common 25 m width with `geartype` as a fixed effect.
 - **ref-assessment-index** `docs/benchmark/beaked/`. Step-4 final report + `*-section.qmd`
   includes (mesh/barrier/retro/cv/survey-comparison); multiple indices (total, over-30 cm,
   length groups); selected index `Over 30 cm biomass` (iid + year effect) vs total (ar1).
@@ -27,7 +28,7 @@ Content was **adapted** (not copied; data/paths stripped) from:
 - **BAIT** — the knowledge-pack + global-skills model, and the data-access layer.
 
 **User refinements to the paper defaults:** Russian data INCLUDED by default; NO temperature
-term by default; gear width is a user choice (set width + multiple gears ⇒ geartype stays a
-covariate); code-review before every slow render.
+term by default; use a common 25 m gear width with `geartype` as a fixed effect unless a project
+documents a reason to revert to gear-specific widths; code-review before every slow render.
 
 Related: [[architecture]].

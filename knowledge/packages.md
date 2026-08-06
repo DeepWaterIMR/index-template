@@ -47,7 +47,7 @@ remotes::install_github("DeepWaterIMR/sdmTMBexperiments")
 remotes::install_github("pbs-assess/sdmTMBextra")
 remotes::install_github("DeepWaterIMR/ggFishPlots")
 # suggested by some helpers:
-install.packages(c("concaveman", "blockCV", "inlabru", "DHARMa", "ggspatial", "pbapply"))
+install.packages(c("concaveman", "blockCV", "inlabru", "DHARMa", "ggspatial", "ggnewscale", "pbapply"))
 ```
 
 ## Conventions

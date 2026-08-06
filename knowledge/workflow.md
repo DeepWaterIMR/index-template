@@ -12,7 +12,7 @@ IMR-internal) repos:
 | index-template document | Background material, if you need to consult it (Vihtakari et al. 2026) |
 |---|---|
 | `docs/data/*.qmd` (compile) | `ref-index-paper/docs/data/{Redfish bottom trawl, BioticExplorer_database, Compile_all_data}.Rmd` |
-| `docs/data/<species>-data-report.qmd` | `ref-index-paper/docs/SI files/SI-Text-1-data.qmd` |
+| `docs/data/<species>-<region>-data-report.qmd` | `ref-index-paper/docs/SI files/SI-Text-1-data.qmd` |
 | `docs/exploration/fit.qmd` | `ref-index-paper/docs/SI files/SI-Text-2-sdmTMB.qmd` |
 | `docs/exploration/validate.qmd` | `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd` |
 | `docs/<species>/report.qmd` (+ `*-section.qmd`) | `ref-assessment-index/docs/benchmark/beaked/*` |
@@ -40,7 +40,7 @@ but structured project ready for step 1. See `project-structure.md`.
    `samplequality`, and `stationtype` tags that make catches quantitative, plus duplicate
    removal and swept-area density.
 3. Compile everything into one dataset with true absences (zero catches at fished stations).
-4. Generate the **data report** (`<species>-data-report.qmd`): station maps, counts by
+4. Generate the **data overview** (`<species>-<region>-data-report.qmd`): station maps, counts by
    year/depth, response distributions, trawl parameters, length–weight and length-group
    allocation.
 

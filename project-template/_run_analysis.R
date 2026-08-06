@@ -22,6 +22,7 @@ if (!requireNamespace("yaml", quietly = TRUE))
 
 cfg  <- yaml::read_yaml("config.yaml")
 slug <- cfg$SPECIES_SLUG
+region_slug <- if (!is.null(cfg$REGION_SLUG)) cfg$REGION_SLUG else if (!is.null(cfg$REGION)) cfg$REGION else "all"
 
 dir.create("logs", showWarnings = FALSE)
 
@@ -33,7 +34,7 @@ render <- function(path) {
 
 if (stage %in% c("all", "data")) {
   render("docs/data/compile-data.qmd")
-  render(file.path("docs/data", paste0(slug, "-data-report.qmd")))
+  render(file.path("docs/data", paste0(slug, "-", region_slug, "-data-report.qmd")))
 }
 if (stage %in% c("all", "fit"))      render("docs/exploration/fit.qmd")
 if (stage %in% c("all", "validate")) render("docs/exploration/validate.qmd")

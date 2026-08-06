@@ -19,15 +19,21 @@ https://github.com/DeepWaterIMR/index-template`).
 ## This project's rules
 
 1. **`config.yaml` is the single source of truth.** Species, surveys, response, length
-   groups, CRS, grid size, mesh cutoff, gear-width policy, and the selected index all live
-   there and are read at run time by `R/00_setup.R`. Don't hard-code them in the qmds.
+   groups, CRS, map display settings, grid size, mesh cutoff, gear-width policy, and the selected
+   index all live there and are read at run time by `R/00_setup.R`. Don't hard-code them in the qmds.
 2. **No data or private paths in tracked files.** `data/`, `logs/`, and `review/` are
    git-ignored. Real GIS polygons and data extracts go in `data/source/` only.
 3. **Filter correctly.** Reproduce index-template's `data-filtering.md` exactly
    (`gearcondition`, the conditional `samplequality`, `stationtype`, duplicates, true zeros,
    swept-area density). This is where indices most often go wrong.
 4. **Start simple.** First model has no length groups and no temperature term.
-5. **Review before you render.** Renders are slow — code-review changed chunks and fix issues
+5. **Step 1 roles are distinct.** `compile-data.qmd` is survey selection and coverage;
+   `<species>-<region>-data-report.qmd` is the compiled station/response report and owns length
+   products and diagnostics. Do not duplicate length-allocation material in survey selection.
+6. **Document provenance is explicit.** Keep the `VERSION` date label and the
+   index-template/researcher-supervised-AI provenance statement near the beginning of both Step 1
+   documents; add project-specific authors and affiliations in their YAML headers.
+7. **Review before you render.** Renders are slow — code-review changed chunks and fix issues
    first, then render in a screen session with a log in `logs/` (index-template `index-render`
    skill). Flip compute toggles to `FALSE` once `data/output/` files exist.
 
@@ -35,7 +41,7 @@ https://github.com/DeepWaterIMR/index-template`).
 
 | Step | Document(s) | index-template skill |
 |---|---|---|
-| 1. Compile & report data | `docs/data/compile-data.qmd`, `docs/data/{{SPECIES_SLUG}}-data-report.qmd` | `index-compile-data` |
+| 1. Compile & report data | `docs/data/compile-data.qmd`, `docs/data/{{SPECIES_SLUG}}-{{REGION_SLUG}}-data-report.qmd` | `index-compile-data` |
 | 2. Fit first model | `docs/exploration/fit.qmd` | `index-fit-model` |
 | 3. Validate / select | `docs/exploration/validate.qmd` | `index-validate-model` |
 | 4. Final report + export | `docs/{{SPECIES_SLUG}}/report.qmd` (+ `*-section.qmd`) | `index-final-report` |

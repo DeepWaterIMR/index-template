@@ -22,7 +22,7 @@
 ├── docs/
 │   ├── data/            # STEP 1 — data compilation + data report
 │   │   ├── compile-data.qmd            # reads BES (+ optional SPD), filters, dedupes, saves
-│   │   └── <species>-data-report.qmd   # the data report
+│   │   └── <species>-<region>-data-report.qmd # the data overview
 │   ├── exploration/     # STEPS 2–3 — fit & validate
 │   │   ├── fit.qmd                     # first feasible model (no length groups)
 │   │   └── validate.qmd                # model selection / CV / retro
@@ -53,13 +53,23 @@
 - **Outputs cache to `data/output/`.** Expensive fits, prediction grids, predictions, and
   indices are saved there so re-renders load instead of recomputing (toggle-controlled — see
   `rendering.md`).
+- **Regions belong in data-document filenames.** Set `REGION_SLUG` in `config.yaml`; the
+  scaffold stamps it into `<species>-<region>-data-report.qmd`. This keeps split N62/S62
+  projects and their rendered outputs unambiguous.
 - **Project memory lives in `memory/`.** Agents read `memory/MEMORY.md` first and write new
   memory files there — not in the agent's local per-machine memory.
 
 ## `config.yaml` fields (stamped by `scaffold.R`)
 
 `SPECIES_NAME` (display), `SPECIES_SLUG` (folder/file slug), `SPECIES_LATIN`, `FILTER_SP`
-(Norwegian commonname value(s)), `SURVEYS` (cruise series to include), `USE_SPD` (true/false),
+(Norwegian commonname value(s)), `SURVEYS` (cruise-series labels to include), `USE_SPD` (true/false),
 `RESPONSE` (`biomass`/`abundance`), `LENGTH_GROUPS`, `OVER_CM` threshold, `ASSESSMENT_MODEL`,
 `FIRST_YEAR`, `CRS` (EPSG), `GRID_KM`, `MESH_CUTOFF_KM`, `BARRIER` (true/false), `GEAR_WIDTH`
 (`per_gear`/set value), `INCLUDE_RUSSIAN` (default true), `SELECTED_INDEX`.
+For split domains also set `REGION`, `REGION_SLUG`, `REGION_FILE`, and `REGION_LAYER`. For
+high-latitude overview maps, optionally set `MAP_CRS` (default EPSG:3995, Arctic LAEA) and
+`MAP_SHAPEFILES` (default `Arctic`).
+
+The Step 1 documents include a dynamic `VERSION` date label, an index-template provenance
+statement, and a compact author block. Project-specific authors and affiliations belong in the
+YAML header; do not put raw data or machine-specific database paths there.

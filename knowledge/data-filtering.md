@@ -26,25 +26,33 @@ stn <- stnall |>
     missiontypename %in% c("Forskningsfartøy", "Leiefartøy"),  # research + charter vessels
     startyear > 1980,
     startyear < last_complete_year,                            # drop the incomplete current year
-    !is.na(catchweight),                                      # catchweight is the reliable measure
     !is.na(distance),
     latitudestart > 0,
     gearcondition %in% 1:2,           # gear in good/acceptable working condition
     is.na(stationtype) | !stationtype %in% c("C", "2", "A", "E"), # retain missing; drop calibration/duplicate/anchor/empty hauls
     distance >= 0.3, distance <= 5,   # trawl haul length in nautical miles
-    is.na(gear) | !gear %in% obsolete_gear_codes # retain missing; drop obsolete/non-standard trawl types
+    is.na(gear) | !gear %in% obsolete_gear_codes, # retain missing; drop obsolete/non-standard trawl types
+    dplyr::if_else(
+      !is.na(.data$cruiseseriescode) & .data$cruiseseriescode == "23",
+      .data$samplequality %in% 1:2,
+      .data$samplequality %in% 1
+    )
   ) |>
   dplyr::collect() |>
-  # sample-quality is conditional on the survey series:
+  # sample-quality is conditional on the cruise series:
   dplyr::filter(
     dplyr::if_else(
-      cruiseseriescode == "23",       # coastal survey series
-      samplequality %in% 1:2,         #   → allow good (1) and acceptable (2)
-      samplequality %in% 1            #   → all other series require highest quality only
+      !is.na(.data$cruiseseriescode) & .data$cruiseseriescode == "23",
+      .data$samplequality %in% 1:2,
+      .data$samplequality %in% 1
     )
   ) |>
   dplyr::mutate(id = paste(cruise, platformname, serialnumber, sep = "_"))
 ```
+
+Build the station roster independently of target catch weight. Validate missing or inconsistent
+target catch records after joining the target species onto the retained stations; otherwise empty
+catch stations are lost before they can become true zeros.
 
 ### What the tags mean
 
@@ -53,8 +61,10 @@ stn <- stnall |>
 - **`stationtype`** — `"C"`, `"2"`, `"A"`, `"E"` are calibration, duplicate, anchor-test, and
   empty/aborted hauls. They are not standard fishing stations and must be excluded. Missing values are retained explicitly: this is essential because a lazy DuckDB filter translates a bare `!stationtype %in% ...` to SQL, where `NULL` values would otherwise be dropped.
 - **`samplequality`** — `1` = highest quality, `2` = acceptable. Standard surveys keep only
-  `1`; the **coastal survey series (`cruiseseriescode == "23"`)** keeps `1:2`. This
-  conditional is essential — do not flatten it to one rule.
+  `1`; the **coastal cruise series (`cruiseseriescode == "23"`)** keeps `1:2`. This
+  conditional is essential — do not flatten it to one rule. If the coastal series used acoustic
+  targeting for another species in early years, document why the target species is still assumed
+  to be randomly sampled before retaining quality 2.
 - **`distance` 0.3–5 nmi** — very short or very long hauls are unreliable for swept area.
 - **`missiontypename`** — keep research and charter vessels only.
 - **`last_complete_year`** — calculate this scalar in R *before* the lazy query. Calling a date-extraction function inside a DuckDB filter can be translated as invalid SQL rather than a year literal.
@@ -110,29 +120,25 @@ Historical data used to live in **SPD files** (e.g. `Barentshavtokt`, `Svalbardt
 
 ## Swept-area density (the response)
 
-Convert catch to density per swept area. Gear width depends on the trawl:
+Convert catch to density per swept area. The default template policy uses one common effective
+width for all trawls:
 
 ```r
 stn <- stn |>
   dplyr::mutate(
-    gear_width    = dplyr::case_when(          # metres; ask the user (see below)
-      geartype == "Shrimp" ~ 25,               #   Campelen / shrimp trawl
-      geartype == "Cod"    ~ 25 * 3.746,        #   Alfredo / cod trawl ≈ 94 m
-      TRUE ~ NA_real_
-    ),
+    gear_width    = 25,                          # metres; common effective width for all trawls
     swept_area    = distance * (gear_width / 1852),   # nmi² (1852 m per nmi)
     rho_biomass   = biomass / swept_area,      # kg   · nmi⁻²
     rho_abundance = count   / swept_area       # n    · nmi⁻²
   )
 ```
 
-### Gear width is a user choice
+### Gear width is a documented simplification
 
-Ask the user whether to use **gear-type-specific widths** (as above) or a **single set
-width** for all gears. **If a set width is chosen and the data contain more than one major
-gear type, `geartype` must stay in the model formula** as a covariate, so the model absorbs
-the systematic difference the differing widths would otherwise cause. (With gear-specific
-widths, `geartype` is still usually kept, but the swept-area difference is already handled.)
+Use a common 25 m effective width for all trawls when the project adopts the simplified policy.
+If more than one major gear type is represented, keep `geartype` in the spatial GLMM as a fixed
+effect so the model can estimate systematic gear differences. Revert to gear-specific widths
+only if diagnostics show that the common-width assumption is inadequate.
 
 ## Depth
 

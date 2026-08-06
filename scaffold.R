@@ -62,6 +62,12 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
   if (!grepl("^[a-z0-9-]+$", slug))
     stop("SPECIES_SLUG must be lower-case kebab-case (a-z, 0-9, -): got '", slug, "'")
 
+  # Regions are optional for single-domain projects, but when a project is split by region
+  # the region slug belongs in data-document filenames to keep N62/S62 outputs unambiguous.
+  region_slug <- if (!is.null(cfg$REGION_SLUG)) as.character(cfg$REGION_SLUG) else "all"
+  if (!grepl("^[A-Za-z0-9-]+$", region_slug))
+    stop("REGION_SLUG must contain only letters, numbers, and hyphens: got '", region_slug, "'")
+
   # --- Copy the skeleton --------------------------------------------------------------
   if (dir.exists(target) && length(list.files(target, all.files = TRUE, no.. = TRUE)))
     stop("Target '", target, "' exists and is not empty. Choose an empty/new directory.")
@@ -82,14 +88,19 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
       if (grepl("SPECIES", basename(f)))
         file.rename(f, file.path(dirname(f), gsub("SPECIES", slug, basename(f))))
     }
+    for (f in list.files(target, recursive = TRUE, full.names = TRUE)) {
+      if (grepl("\\{\\{REGION_SLUG\\}\\}", basename(f)))
+        file.rename(f, file.path(dirname(f), gsub("\\{\\{REGION_SLUG\\}\\}", region_slug, basename(f))))
+    }
   }
-  msg("Renamed SPECIES -> ", slug, " in paths")
+  msg("Renamed SPECIES -> ", slug, " and region -> ", region_slug, " in paths")
 
   # --- Stamp identity tokens in text files --------------------------------------------
   tokens <- c(
     "{{SPECIES_NAME}}"  = as.character(cfg$SPECIES_NAME),
     "{{SPECIES_SLUG}}"  = as.character(cfg$SPECIES_SLUG),
-    "{{SPECIES_LATIN}}" = as.character(cfg$SPECIES_LATIN)
+    "{{SPECIES_LATIN}}" = as.character(cfg$SPECIES_LATIN),
+    "{{REGION_SLUG}}"   = region_slug
   )
   text_ext <- c("qmd", "rmd", "r", "md", "yaml", "yml", "css", "bib")
   scan_root <- if (dry) template else target
@@ -115,7 +126,7 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
       txt <- tryCatch({
         s <- readChar(f, file.info(f)$size, useBytes = TRUE); Encoding(s) <- "UTF-8"; s
       }, error = function(e) "")
-      if (grepl("\\{\\{SPECIES_(NAME|SLUG|LATIN)\\}\\}", txt)) left <- c(left, f)
+      if (grepl("\\{\\{(SPECIES_(NAME|SLUG|LATIN)|REGION_SLUG)\\}\\}", txt)) left <- c(left, f)
     }
     if (length(left))
       warning("Leftover identity placeholders in:\n  ", paste(left, collapse = "\n  "))
