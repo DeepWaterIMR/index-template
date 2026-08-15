@@ -10,9 +10,12 @@ need for a survey index; the helpers in `sdmtmbexperiments.md` wrap most of the 
 A survey index model predicts density at every point in space and time, then integrates over
 a prediction grid to get a total. The building blocks:
 
-- **Response** — swept-area density (`rho_biomass` in kg·nmi⁻², or `rho_abundance` in
-  n·nmi⁻²). See `data-filtering.md`. (The benchmark alternatively models raw catch with a
-  swept-area **offset**; density-as-response is the default here, matching the paper.)
+- **Response** — the default benchmark uses swept-area density (`rho_biomass` in kg·nmi⁻², or
+  `rho_abundance` in n·nmi⁻²). A valid alternative is raw catch weight/count with a log swept-area
+  **offset** supplied through `sdmTMB(..., offset = ...)`; state the choice in the data report.
+  In the installed sdmTMB API, an offset in a delta family applies to the positive component only.
+  If sampled area should also affect occurrence probability, include it explicitly in that component
+  or compare a Tweedie model rather than implying that the offset alone standardizes zeros.
 - **Fixed effects** — `~ 0 + geartype + s(month) + s(depth)`. The `0 +` drops the global
   intercept so each `geartype` level is estimated directly; `s()` are penalised smooths
   (mgcv-style) for seasonal and depth effects. **No temperature term by default.**

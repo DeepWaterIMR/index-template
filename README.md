@@ -51,6 +51,7 @@ This repo is **public and contains instructions only — never data**:
 | Step | Skill |
 |------|-------|
 | Scaffold a project (questionnaire + plan) | [`index-new-project`](skills/index-new-project/SKILL.md) |
+| Create valid study-region polygons | [`index-make-regions`](skills/index-make-regions/SKILL.md) |
 | **1.** Compile & report the data | [`index-compile-data`](skills/index-compile-data/SKILL.md) |
 | **2.** Fit the first feasible model | [`index-fit-model`](skills/index-fit-model/SKILL.md) |
 | **3.** Validate / select the model | [`index-validate-model`](skills/index-validate-model/SKILL.md) |
@@ -78,6 +79,5 @@ This repo is designed to create a survey index template. It speeds up the data a
 Anderson, S.C., Ward, E.J., English, P.A., Barnett, L.A.K., & Thorson, J.T. (2025). sdmTMB: An R Package for Fast, Flexible, and User-Friendly Generalized Linear Mixed Effects Models with Spatial and Spatiotemporal Random Fields. Journal of Statistical Software, 115(2), 1–46. [doi:10.18637/jss.v115.i02](https://doi.org/10.18637/jss.v115.i02).
 
 Vihtakari, M., Aune, M., Assmann, K.M., Howell, D., Hallfredsson, E.H., & Ward, E.J. (2026). *Demersal distribution and fisheries independent trends of beaked and golden redfish in the Barents and Norwegian Seas.* ICES Journal of Marine Science, 83(2), fsag009. [doi:10.1093/icesjms/fsag009](https://doi.org/10.1093/icesjms/fsag009).
-
 
 

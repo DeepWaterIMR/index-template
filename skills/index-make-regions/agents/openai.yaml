@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make Analysis Regions"
+  short_description: "Build valid, non-overlapping spatial analysis polygons"
+  default_prompt: "Create and validate non-overlapping study-region polygons for my index project."

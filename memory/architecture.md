@@ -21,8 +21,8 @@ user (not a clone-and-fill repo).
   Delivery model = generator; scaffolding = hybrid (config stamps identity/paths, agent adapts
   analytical qmd content).
 
-Layout: `AGENTS.md`/`CLAUDE.md` (contract), `skills/index-*` (8 skills), `knowledge/*.md`
-(7 shared-truth files), `project-template/` (skeleton), `scaffold.R`, `examples/redfish/`,
+Layout: `AGENTS.md`/`CLAUDE.md` (contract), `skills/index-*` (9 skills), `knowledge/*.md`
+(8 shared-truth files), `project-template/` (skeleton), `scaffold.R`, `examples/redfish/`,
 `cookbook/`, `memory/`.
 
 **Boundary:** call generic helpers from `sdmTMBexperiments`; never duplicate package internals

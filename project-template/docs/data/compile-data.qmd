@@ -54,6 +54,13 @@ This document selects surveys from the IMR Biotic database for the configured pr
 The polygon map below shows all configured region features; the active region is selected by
 `config.yaml`.
 
+When survey acquisition uses a broader reporting polygon than the later model domain, set
+`ACQUISITION_REGION` and `ACQUISITION_REGION_LAYER` in `config.yaml`, keep `REGION` as the model
+domain, and set `ADD_REGION_IDENTIFIER: true` with `PARTITION_REGION` and
+`PARTITION_REGION_LAYER`. The compiler should qualify surveys and retain hauls across the full
+acquisition polygon, then add a `region` column identifying the model-domain partition (for
+example `S62`) versus the remainder of the acquisition polygon (for example `NS`).
+
 ```{r, eval=FALSE}
 #| label: fig-prediction-region
 #| fig-cap: "Prediction polygons over quality-filtered positive target-species hauls across the full study extent. The configured region is used for survey selection; other polygons are shown for context or later regional indices."

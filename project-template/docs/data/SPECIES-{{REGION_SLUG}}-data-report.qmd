@@ -34,6 +34,16 @@ diagnostics_path <- file.path(out_dir, "compile-diagnostics.rds")
 diagnostics <- if (file.exists(diagnostics_path)) readRDS(diagnostics_path) else NULL
 metadata_path <- file.path(out_dir, "compile-metadata.rds")
 metadata <- if (file.exists(metadata_path)) readRDS(metadata_path) else list(data_downloaded_at_label = "Not recorded")
+individual_metadata <- if (!is.null(diagnostics) && !is.null(diagnostics$individual_metadata)) {
+  diagnostics$individual_metadata
+} else {
+  list(n_records = NA_integer_, n_stations = NA_integer_, n_observed_weights = NA_integer_)
+}
+station_n <- nrow(dt)
+positive_station_n <- sum(dt$rho_biomass > 0, na.rm = TRUE)
+zero_station_n <- sum(dt$rho_biomass == 0, na.rm = TRUE)
+year_n <- dplyr::n_distinct(dt$startyear)
+survey_n <- dplyr::n_distinct(dt$missionid)
 ```
 
 This document and the associated analyses are based on
@@ -43,7 +53,84 @@ researcher-supervised generative AI. Add the project-specific authors to the YAM
 The compiled dataset was extracted from the IMR Biotic database on
 `r metadata$data_downloaded_at_label`.
 
+## Data collation
+
+The station catch data and individual fish measurements are acquired from the IMR Biotic
+database when the survey-selection document is compiled. Survey selection qualifies individual
+surveys first and then retains all valid hauls from qualifying surveys so true-zero hauls remain
+available. This report reads the compiled station dataset and compiler diagnostics; raw
+individual-level records are used for length allocation but are not written to the project.
+
+The compiled dataset uses station-level catches for the complete haul roster and individual-level
+length measurements for the length products. The generic data flow is:
+
+```{mermaid}
+%%| label: fig-data-schematic
+%%| fig-cap: "Generic data collation workflow. Quality-filtered station catches provide the haul roster; individual lengths are combined with length-weight allocation and rescaling to produce total and length-specific biomass products."
+flowchart LR
+  A[IMR Biotic station catches] --> B[Station and region filters]
+  B --> C[Compiled station dataset]
+  D[IMR Biotic individual lengths] --> E[Length and quality filters]
+  E --> F[Compiled individual dataset]
+  C --> G[Length-weight allocation]
+  F --> G
+  C --> H[Total biomass]
+  G --> I[Biomass at or below threshold]
+  G --> J[Biomass above threshold]
+```
+
+### Station-level data
+
+The station-level dataset has one row per retained bottom-trawl haul after the configured gear,
+mission, distance, station-type, sample-quality, year, and exact-region filters. Target-species
+catch records are aggregated over catch samples within a haul. The compiler first builds the
+station roster independently of target catch weight. If no target-species catch row is present
+after the standard haul and region filters, its biomass is set to zero and the haul is retained as
+a true zero. If a target catch row is present but any target catch weight is missing, or the summed
+catch count is less than the summed length-sample count, or the summed catch weight is less than
+the summed length-sample weight, the haul is excluded and recorded in the catch-quality audit; it
+is not converted to zero. The primary station-level observation retained for modelling is raw
+target catch weight (`biomass`, kg). The compiler also derives swept-area biomass density
+(`rho_biomass`) for descriptive checks by dividing catch weight by swept area. For a catch-weight
+formulation, use `biomass` as the response and pass `log(swept_area_nmi2)` to
+`sdmTMB::sdmTMB()` through its `offset` argument. This keeps zero-catch hauls in the data while
+scaling the positive catch process to the sampled area. In a delta family, the sdmTMB offset
+applies only to the positive component, so document and validate separately whether swept area
+also enters the occurrence component. Gear type can remain a fixed effect when a common width is
+used across different trawls.
+
+### Individual-level data
+
+The individual-level dataset is filtered to target-species records from the qualifying surveys
+and retained haul roster. Duplicate specimens are removed using haul, catch-sample, and specimen
+identifiers. Lengths are converted to centimetres. In subsampled catches, each measured fish is
+represented by the recorded haul count divided by the number of measured fish; unavailable counts
+default to one.
+
+## Length-based data
+
+Length-based products combine the station-level total catch with individual-level length
+composition. Use observed individual weights where available and estimate missing weights from a
+documented length-weight relationship. For measurement $i$, multiply estimated weight $w_i$
+by its superindividual representation $s_i$, calculate the share of each length group from
+the resulting weights, and rescale those shares to the recorded station biomass. Thus, for group
+$g$, $B_g = B \times (\sum_{i \in g} w_i s_i / \sum_i w_i s_i)$. State the threshold,
+whether the threshold belongs to the lower or upper group, and how positive hauls without usable
+lengths are handled. The length-specific products should sum to total biomass whenever usable
+length information exists.
+
+The overview below is generated from the compiled objects rather than hard-coded counts. If the
+compiler records individual-level metadata, report the number of length records and stations here
+as well.
+
 ## Overview
+
+The station-level dataset contains `r format(station_n, big.mark = " ")` retained hauls from
+`r min(dt$startyear)` to `r max(dt$startyear)` across `r format(year_n, big.mark = " ")` years and
+`r format(survey_n, big.mark = " ")` qualifying surveys. `r format(positive_station_n, big.mark = " ")`
+hauls are target-positive and `r format(zero_station_n, big.mark = " ")` are true-zero hauls. The
+intermediate individual dataset contains `r format(individual_metadata$n_records, big.mark = " ")`
+length records from `r format(individual_metadata$n_stations, big.mark = " ")` stations.
 
 ```{r overview}
 knitr::kable(
@@ -140,7 +227,7 @@ ggplot2::ggplot(dt, ggplot2::aes(distance, fill = geartype)) +
   ggplot2::labs(x = "Tow distance (nmi)", y = "Retained hauls", fill = "Gear type")
 ```
 
-## Length products
+## Length-product checks
 
 If the project has length-based products, adapt this section to the compiled length allocation.
 Keep the threshold definition and missing-length treatment explicit. Positive stations without

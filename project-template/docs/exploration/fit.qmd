@@ -33,6 +33,10 @@ dt <- readRDS(file.path(out_dir, "compiled-data.rds"))
 
 Response and projected coordinates (km). Keep true zeros.
 
+If Step 1 acquired a broader reporting polygon and added a `region` field, filter that field to
+the model-domain label here before constructing the mesh. Do not remove the broader stations
+during survey qualification or data-overview compilation.
+
 ```{r prepare, eval=params$refit_model}
 dt <- dt |>
   dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>

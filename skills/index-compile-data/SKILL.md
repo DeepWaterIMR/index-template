@@ -34,6 +34,12 @@ into the template or generated project.
    hauls whose `missionid` is in that qualifying set. Do not select all hauls by cruise-series
    code, because that backfills surveys in the same time-series that failed the survey-level
    positive-catch or sampling-quality rule.
+   If survey acquisition covers a broader reporting polygon than the later model domain, use
+   `ACQUISITION_REGION`/`ACQUISITION_REGION_LAYER` for the acquisition polygon and retain
+   `REGION` as the model-domain label. With `ADD_REGION_IDENTIFIER: true`,
+   `PARTITION_REGION`/`PARTITION_REGION_LAYER` should be used to add a `region` column after
+   exact spatial filtering; this lets the full acquisition dataset be compiled once and split
+   during model fitting.
 2. **Apply the station filter** from `knowledge/data-filtering.md`: `gearcondition %in% 1:2`,
    the conditional `samplequality` rule (coastal series `cruiseseriescode == "23"` → `1:2`,
    else `1`), `stationtype` exclusions, `distance` 0.3–5 nmi, research/charter missions,
@@ -50,8 +56,9 @@ into the template or generated project.
 7. **Depth** — fill missing/invalid depths from GEBCO (`ggOceanMaps::get_depth()`).
 8. **Length data** — fit length–weight (`ggFishPlots::plot_lw()`) and allocate catches to
    length groups if the project needs length-based products.
-9. **Save** the compiled dataset to the root-level `data/output/` (gitignored). Never create
-   `docs/data/output/` or any other document-local output directory.
+9. **Save** the compiled dataset to the root-level `data/output/` (gitignored). Region-specific
+   subdirectories such as `data/output/s62/` are acceptable when two acquisition datasets share
+   one project. Never create `docs/data/output/` or any other document-local output directory.
 
 ## Data report
 
@@ -79,7 +86,15 @@ The two Step 1 documents have distinct roles and should not duplicate figures:
   filtering-script appendix.
 - `<slug>-<region>-data-report.qmd` is the compiled-data overview: final station map, effort
   through time, depth and response distributions, continuous effort checks, length products,
-  and diagnostics.
+  and diagnostics. Begin this document with a dynamic **Data collation** explanation covering
+  station-level and individual-level data, then describe the length-group calculation explicitly:
+  Keep total biomass directly tied to station catch weight; use observed or estimated individual
+  weight multiplied by superindividual representation only for the size-specific products, then
+  group into length shares and rescale to station total biomass. Include a schematic of the actual
+  data flow; omit SPD branches when `USE_SPD: false`.
+  Record individual-level summary metadata (length-record count, station count, and observed
+  individual-weight count) in compiler diagnostics so the report can describe the dataset without
+  hard-coded values or exposing raw individual records.
 
 Every figure and table must have a caption. Use stable `fig-cap`/`tbl-cap` chunk metadata or an
 explicit table caption, with explicit Quarto labels and cross-reference settings so captions

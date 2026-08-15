@@ -44,3 +44,19 @@ The template documents use a `VERSION` date label, an index-template provenance 
 project-specific author affiliations near the top. All figures and tables have explicit captions
 and stable Quarto cross-reference labels. Generated outputs belong under root-level
 `data/output/`; never create document-local output folders or track raw Biotic data/private paths.
+
+When acquisition and modelling use different polygons, support this explicitly in configuration:
+`ACQUISITION_REGION`/`ACQUISITION_REGION_LAYER` controls survey qualification, while `REGION`
+remains the model-domain label. With `ADD_REGION_IDENTIFIER: true`,
+`PARTITION_REGION`/`PARTITION_REGION_LAYER` adds a `region` column after exact spatial filtering,
+so the full acquisition dataset can be compiled once and filtered during fitting. If multiple
+regional datasets share a project, use root-level subdirectories such as `data/output/s62/` to
+avoid cache collisions; never write under `docs/data/output/`.
+
+The compiled-data report should begin with a dynamic data-collation section. Explain the separate
+station-level haul roster and individual-level length data. Total biomass comes directly from
+station catch weight; the length allocation calculus (individual weight × superindividual
+representation → length-group shares → rescaling to station total biomass) applies only to
+size-specific products. A data-flow schematic is useful; adapt it to the configured sources and
+do not show SPD inputs when `USE_SPD: false`. Overview counts must be computed from the compiled
+objects at render time rather than hard-coded.

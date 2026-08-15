@@ -70,6 +70,12 @@ For split domains also set `REGION`, `REGION_SLUG`, `REGION_FILE`, and `REGION_L
 high-latitude overview maps, optionally set `MAP_CRS` (default EPSG:3995, Arctic LAEA) and
 `MAP_SHAPEFILES` (default `Arctic`).
 
+When acquisition uses a broader reporting polygon than the model domain, set
+`ACQUISITION_REGION`/`ACQUISITION_REGION_LAYER` to the broader feature, keep `REGION` as the
+model-domain label, and set `ADD_REGION_IDENTIFIER: true` with `PARTITION_REGION` and
+`PARTITION_REGION_LAYER`. The compiled station data should then retain all qualifying hauls in
+the acquisition polygon and carry a `region` field for later model-stage filtering.
+
 The Step 1 documents include a dynamic `VERSION` date label, an index-template provenance
 statement, and a compact author block. Project-specific authors and affiliations belong in the
 YAML header; do not put raw data or machine-specific database paths there.

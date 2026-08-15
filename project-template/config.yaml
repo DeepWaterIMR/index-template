@@ -34,6 +34,14 @@ REGION: "ALL"                         # feature/layer name used by a multi-regio
 REGION_SLUG: "all"                    # filename-safe region identifier, e.g. N62 or S62
 REGION_FILE: "data/source/prediction_region.gpkg"
 REGION_LAYER: "prediction_region"
+# Optional broader acquisition polygon and station partition. A Step 1 document can set
+# ACQUISITION_REGION to a reporting feature (for example NS) while retaining REGION as the
+# later model domain (for example S62), then set ADD_REGION_IDENTIFIER to true.
+ACQUISITION_REGION: null
+ACQUISITION_REGION_LAYER: null
+PARTITION_REGION: null
+PARTITION_REGION_LAYER: null
+ADD_REGION_IDENTIFIER: false
 CRS: 32633                            # projected CRS (EPSG); 32633 = UTM 33N
 MAP_CRS: null                          # optional map display CRS; defaults to Arctic LAEA (EPSG:3995)
 MAP_SHAPEFILES: null                   # optional ggOceanMaps shapefile set; defaults to Arctic
@@ -51,4 +59,5 @@ SELECTED_INDEX: "Over 30 cm biomass"  # which product feeds the assessment
 
 # --- Paths (relative to project root) ---------------------------------------------------
 OUTPUT_DIR: "data/output"
+REVIEW_DIR: "review"
 SOURCE_DIR: "data/source"
