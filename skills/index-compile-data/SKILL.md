@@ -40,23 +40,31 @@ into the template or generated project.
    `PARTITION_REGION`/`PARTITION_REGION_LAYER` should be used to add a `region` column after
    exact spatial filtering; this lets the full acquisition dataset be compiled once and split
    during model fitting.
-2. **Apply the station filter** from `knowledge/data-filtering.md`: `gearcondition %in% 1:2`,
-   the conditional `samplequality` rule (coastal series `cruiseseriescode == "23"` → `1:2`,
-   else `1`), `stationtype` exclusions, `distance` 0.3–5 nmi, research/charter missions,
-   `startyear` window. Russian data **included by default** (opt-out only).
-3. **Keep true zeros** — join species catch onto the full retained-station set so absences are
-   preserved.
-4. **Remove duplicates** — flag ids where length sample exceeds catch; drop them; write the
+2. **Define the haul key and catchsample logic** from `knowledge/data-filtering.md`. Use
+   `missionid + serialnumber` in BES or the native mission tuple plus `serialnumber`; inspect
+   catchparts and comments before aggregation.
+3. **Apply the station filter** from `knowledge/data-filtering.md`: the documented
+   survey-specific `gearcondition` set, the conditional `samplequality` rule (coastal series
+   `cruiseseriescode == "23"` → `1:2`, else `1`), `stationtype` exclusions, `distance` 0.3–5
+   nmi, research/charter missions, and `startyear` window. Code 2 in `samplequality` means
+   targeted sampling, not generic acceptable quality. Russian data **included by default**
+   (opt-out only).
+4. **Keep true zeros** — build the retained-station roster independently, aggregate the target
+   catch to the same unit, and left-join it so verified absences are preserved.
+5. **Remove duplicates** — flag haul ids where length sample exceeds catch; drop them; write the
    duplicate report to `review/`.
-5. **Optional SPD files** — only if `USE_SPD: true` (northern/offshore species). Drop SPD
+6. **Optional SPD files** — only if `USE_SPD: true` (northern/offshore species). Drop SPD
    years/series already in Biotic; tag `source`. For southern/coastal species, skip SPD.
-6. **Swept-area density** — apply the gear-width policy from `config.yaml` (normally a common
-   25 m effective width) to compute `rho_biomass` / `rho_abundance`. If a common width is used
-   with multiple gear types, retain `geartype` as a fixed effect in the model.
-7. **Depth** — fill missing/invalid depths from GEBCO (`ggOceanMaps::get_depth()`).
-8. **Length data** — fit length–weight (`ggFishPlots::plot_lw()`) and allocate catches to
-   length groups if the project needs length-based products.
-9. **Save** the compiled dataset to the root-level `data/output/` (gitignored). Region-specific
+7. **Swept-area density** — apply the gear-width policy from `config.yaml` (normally a common
+   25 m effective width) to compute `rho_biomass` / `rho_abundance`. Sum catch and swept area
+   to the output unit before division. If a common width is used with multiple gear types,
+   retain `geartype` as a fixed effect in the model.
+8. **Depth** — fill missing/invalid depths from GEBCO (`ggOceanMaps::get_depth()`).
+9. **Length data** — fit length–weight (`ggFishPlots::plot_lw()`) and allocate catches to
+   length groups if the project needs length-based products. Raise observations within
+   catchsample with a numeric `catchcount / lengthsamplecount` representation factor; do not
+   round and expand rows unless a downstream method requires integer rows.
+10. **Save** the compiled dataset to the root-level `data/output/` (gitignored). Region-specific
    subdirectories such as `data/output/s62/` are acceptable when two acquisition datasets share
    one project. Never create `docs/data/output/` or any other document-local output directory.
 

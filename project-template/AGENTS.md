@@ -23,9 +23,10 @@ https://github.com/DeepWaterIMR/index-template`).
    index all live there and are read at run time by `R/00_setup.R`. Don't hard-code them in the qmds.
 2. **No data or private paths in tracked files.** `data/`, `logs/`, and `review/` are
    git-ignored. Real GIS polygons and data extracts go in `data/source/` only.
-3. **Filter correctly.** Reproduce index-template's `data-filtering.md` exactly
-   (`gearcondition`, the conditional `samplequality`, `stationtype`, duplicates, true zeros,
-   swept-area density). This is where indices most often go wrong.
+3. **Define sampling units and filter correctly.** Follow index-template's
+   `data-filtering.md` for stable haul keys, catchsample aggregation, survey-specific
+   `gearcondition`, conditional `samplequality`, `stationtype`, duplicate diagnostics, true
+   zeros, and swept-area density. Do not infer code meanings from their numeric order.
 4. **Start simple.** First model has no length groups and no temperature term.
 5. **Step 1 roles are distinct.** `compile-data.qmd` is survey selection and coverage;
    `<species>-<region>-data-report.qmd` is the compiled station/response report and owns length

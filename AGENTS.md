@@ -104,9 +104,10 @@ Shared knowledge lives in `knowledge/`:
 2. **Use the helpers, don't reinvent them.** Meshes, prediction grids, comparisons, retros,
    CV, and maps come from `sdmTMBexperiments`; maps from `ggOceanMaps`. See
    `knowledge/sdmtmbexperiments.md`.
-3. **Filter data correctly.** Quantitative density estimates require the right
-   `gearcondition`, `samplequality`, and `stationtype` tags, and duplicate removal. This is
-   the single biggest source of wrong indices — follow `knowledge/data-filtering.md`.
+3. **Define sampling units and filter data correctly.** Quantitative density estimates require
+   stable haul keys, resolved catchsample logic, true zeros, and documented `gearcondition`,
+   `samplequality`, and `stationtype` rules. Follow `knowledge/data-filtering.md`; do not treat
+   numeric quality codes as a universal ordinal scale.
 4. **Start simple.** The first model has **no length groups** — confirm the method works,
    then extend. No temperature term by default.
 5. **Review before you render.** Quarto renders are slow. **Always code-review the changed

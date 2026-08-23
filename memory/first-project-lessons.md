@@ -20,7 +20,7 @@ target catch passes the standard haul filters and the exact region test. A cruis
 surveys in a time series; do not backfill failed surveys merely because another survey in that
 series qualifies. Uncoded surveys are assessed individually before assigning `Other`.
 
-The standard sample-quality predicate is SQL-compatible and NA-safe:
+The inherited sample-quality predicate is SQL-compatible and NA-safe:
 
 ```r
 dplyr::if_else(
@@ -32,7 +32,22 @@ dplyr::if_else(
 
 Apply it in the lazy query and retain the same check after collection. If code 23 represents a
 coastal acoustic survey that targeted another species, document why the target species is assumed
-to remain randomly sampled before retaining quality 2.
+to remain randomly sampled before retaining quality 2. Code 2 denotes targeted sampling rather
+than generic “acceptable quality.” Likewise, retaining `gearcondition` code 2 can be appropriate
+for a documented survey workflow but is not a universal ordered-code rule.
+
+Use `missionid + serialnumber` as the BES fishstation key. For native NMD Biotic, use
+`missiontype + startyear + platform + missionnumber + serialnumber`; `missionid` is added by
+BioticExplorerServer. Do not build keys from cruise or vessel labels. A `stnall` row is a
+catchsample, not necessarily a haul. Resolve multiple catchparts from identifiers, product and
+raising fields, and comments before summing. Rare multisampler workflows can use separate
+serialnumbers for bags and a shared `station` for the physical haul; require survey-specific
+evidence before aggregating that way.
+
+Raise length or individual observations within catchsample using the numeric representation
+factor `catchcount / lengthsamplecount`. Keep the measured sample size separate, avoid rounding
+and row expansion when weights are supported, and never average catch or swept-area densities
+across unequal-effort rows: sum numerators and denominators before division.
 
 For prediction-region overview maps, calculate observation and polygon extents in a display CRS
 (default EPSG:3995), convert bounding boxes to corner points, and pass them to `basemap(data=...)`.
