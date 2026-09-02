@@ -26,6 +26,19 @@ library(sdmTMBexperiments)   # ATTACH (not just ::) — this attaches ggOceanMap
 - Some functions need suggested packages: `concaveman` (survey regions), `blockCV`
   (`sdmTMB_mesh_cv`), `inlabru` (`plot_mesh`), `DHARMa`/`ggspatial` (`bubble_map`).
 
+## Model selection
+
+| Function | Purpose |
+|---|---|
+| `sdmTMB_selection(candidates, data, ...)` | Fits a named list of candidate specifications to identical records; returns a tidy table (spec, crash/convergence/sanity, `comparable`, NLL, AIC, ΔAIC, Akaike weights, and CV columns when `cv` is set) plus the fits. Covers every selection stage — components, fixed effects, family, spatiotemporal structure, mesh cutoff — because each is the same operation with a different thing varied. `cache_dir` writes one file per candidate (resumable); `only` restricts a call to named candidates so a long ladder can be spread over several R sessions. |
+| `selection_frame(data, candidates, extra)` | The complete-case frame that makes those columns comparable: drops rows incomplete for **any** candidate. |
+| `sdmTMB_cv_summary(cv, label)` | Summarises an `sdmTMB::sdmTMB_cv()` run **per held-out observation** (not summed), with `folds_pdhess` and `n_heldout`. |
+| `best_candidate(x, n, by)` | The winner, looked up in the metric column among `comparable` rows — never by row position. `n > 1` builds a CV shortlist from an AIC ladder. |
+| `add_aic_weights(x, group)` | ΔAIC + Akaike weights for any table with an `AIC` column; `group` keeps models fitted to different response data in separate weighting sets. |
+| `plot(sel)` / `plot(sel, type = "index", newdata = grid)` | Status-coded ranking dot plot; and the index each candidate produces — the check that says whether the choice moves the index at all. |
+
+**Read `model-selection.md` before using these.** The rules there (identical records, comparability, per-observation likelihood, AIC-then-CV) are the point; the functions are only the mechanics.
+
 ## Prediction grids
 
 | Function | Purpose |
@@ -66,8 +79,11 @@ library(sdmTMBexperiments)   # ATTACH (not just ::) — this attaches ggOceanMap
 
 - **Step 2 (fit):** `plot_mesh`, `make_survey_prediction_region`, `make_prediction_grid`,
   `plot_prediction_map`, `plot_random_field`, `plot_residual_qq`.
-- **Step 3 (validate):** `compare_models`, `compare_meshes`, `sdmTMB_mesh_cv`, `sdmTMB_retro`,
-  `mohns_rho`.
+- **Step 3 (validate):** `sdmTMB_selection` + `selection_frame` / `best_candidate` /
+  `selection_kable` for the selection stages; then `compare_meshes`, `sdmTMB_mesh_cv`,
+  `sdmTMB_retro`, `mohns_rho`. Use `compare_models` when you want per-cell *spatial*
+  prediction differences between two or three finished fits — `sdmTMB_selection` is for
+  ranking many candidates.
 - **Step 4 (report):** all of the above, plus `compare_surveys` for the survey-comparison
   section and `plot_fixed_effects` / `plot_variance_partitioning` for the results.
 

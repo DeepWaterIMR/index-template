@@ -1,4 +1,7 @@
-<!-- Included by report.qmd. Shares its params. Spatial block CV across mesh cutoffs. -->
+<!-- Included by report.qmd. Shares its params. Spatial block CV across mesh cutoffs.
+`sum_loglik` is a SUMMED hold-out log-likelihood, which is only comparable because every
+cutoff here scores the same observations. Do not carry that metric over to a comparison whose
+candidates differ in size -- see knowledge/model-selection.md and sdmTMB_cv_summary(). -->
 
 ```{r cv-section, eval=params$include_cv}
 #| output: asis

@@ -53,11 +53,17 @@ This report builds the indices the assessment needs. Define the response for eac
 
 ```{r fit-products, eval=params$refit_models}
 # Fit the total-biomass model (and length-based variants as needed). Example (total):
-form <- build_formula(cfg, has_multiple_gears)
+# `data = dt` sizes the smooth bases to what the survey sampled; use the specification Step 3
+# selected rather than the config default whenever the two differ.
+form <- build_formula(cfg, has_multiple_gears, data = dt)
 dt$value <- dt$rho_biomass
+# Years the survey skipped: an `ar1` field assumes evenly spaced steps, and a gap makes sdmTMB
+# warn about irregular time spacing and can leave the fit grinding for a very long time.
+extra_time <- setdiff(seq(min(dt$year), max(dt$year)), unique(dt$year))
 fit_total <- sdmTMB::sdmTMB(
   form, data = dplyr::filter(dt, !is.na(value)), mesh = mesh,
   family = model_family, spatial = "on", spatiotemporal = "ar1", time = "year",
+  extra_time = if (length(extra_time)) extra_time else NULL,
   control = sdmTMB::sdmTMBcontrol(newton_loops = 2)
 )
 saveRDS(fit_total, file.path(out_dir, "model-fit-total.rds"))

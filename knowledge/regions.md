@@ -112,3 +112,21 @@ ggOceanMaps::basemap(
 ```
 
 If the map needs a spatial object in WGS84, transform a display copy rather than altering the saved analysis object.
+
+## Fitting domain vs prediction domain
+
+They are not the same object, and only the second defines what the index is an index of.
+
+Stations outside the model domain can still be worth **fitting** to — they pin the spatial
+field down where the species is absent — while being excluded from the grid the index
+**integrates over**. Keep the two separate rather than filtering once and hoping.
+
+For a survey whose station coverage has shifted over the years, consider a coverage rule on the
+prediction grid as well: keep only cells supported by data in at least some share of years. A
+domain covering every cell ever sampled asks the spatiotemporal field to predict into cells
+with no data in a given year, and because the link is logarithmic those extrapolated cells can
+dominate the integral — the symptom is a terminal-year spike with an enormous confidence
+interval that disappears when the spatiotemporal field is switched off. The grid must be
+**fixed across years** (or the index confounds area with density) *and* **supported in every
+year** (or the model is extrapolating); a coverage threshold is how you get both. This is an
+option, not a default — apply it when the station map shows the footprint moving.

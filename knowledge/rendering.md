@@ -28,6 +28,30 @@ indices to `data/output/`); then **flip them to `FALSE`** so subsequent renders 
 objects and finish in seconds. Never delete `.quarto/` to "force a clean build" — fix the load
 paths instead.
 
+### Per-candidate caches for the slow stages
+
+A single toggle for a whole model-selection stage is the wrong granularity: a failure on the
+last candidate discards every candidate before it, which is exactly what makes a long run
+unrecoverable. `sdmTMBexperiments::sdmTMB_selection(cache_dir =)` writes **one `.rds` per
+candidate**, so an interrupted stage resumes where it stopped. Give each stage its own
+`cache_prefix`.
+
+The same mechanism spreads a stage across R sessions. A large spatiotemporal fit can peak at
+several GB, and a dozen accumulating in one process exhausts memory — at which point candidates
+start failing for reasons that have nothing to do with the model. `only = "<candidate>"`
+computes one candidate and reads the rest from cache, so a warming script can fan the work
+across processes:
+
+```bash
+for c in "Full model" "No depth" "No month"; do
+  Rscript -e "quarto::quarto_render('docs/exploration/validate.qmd',
+                                    execute_params = list(only = '$c'))"
+done
+```
+
+Then render normally: every candidate is already cached, and the document assembles the tables
+in seconds.
+
 ## 3. Run detached in a screen session
 
 Render in a `screen` (or `tmux`) session so the job survives a disconnect, and **write the

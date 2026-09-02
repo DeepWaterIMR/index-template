@@ -22,8 +22,18 @@ user (not a clone-and-fill repo).
   analytical qmd content).
 
 Layout: `AGENTS.md`/`CLAUDE.md` (contract), `skills/index-*` (9 skills), `knowledge/*.md`
-(8 shared-truth files), `project-template/` (skeleton), `scaffold.R`, `examples/redfish/`,
+(9 shared-truth files), `project-template/` (skeleton), `scaffold.R`, `examples/redfish/`,
 `cookbook/`, `memory/`.
+
+**Step 3 is a comparability contract, not a pile of function calls.** `knowledge/model-
+selection.md` is the method: candidates fitted to identical records, only `comparable` rows
+compared, hold-out likelihood per observation rather than summed, `sanity()` reported but not
+gating, AIC ladder first with cross-validation on an AIC-ranked shortlist, the winner looked up
+in the metric column rather than at row 1, and the gap stated whenever the carried-forward model
+is not the winner. The mechanics live in `sdmTMBexperiments::sdmTMB_selection()` +
+`selection_frame()` / `best_candidate()` / `sdmTMB_cv_summary()` / `add_aic_weights()`, added
+there rather than here (see the boundary rule below); `project-template/R/00_setup.R` carries
+only the two project-side conveniences, `drop_one_candidates()` and `selection_kable()`.
 
 **Boundary:** call generic helpers from `sdmTMBexperiments`; never duplicate package internals
 here. Reference data (species/surveys/gear) comes from the Biotic database via BAIT.

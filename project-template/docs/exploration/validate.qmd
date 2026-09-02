@@ -9,73 +9,303 @@ format:
     fig-dpi: 160
     embed-resources: true
 params:
-  run_selection: true    # component ranking + model/family/structure comparison
-  run_mesh_cv: false     # spatial block CV across mesh cutoffs (slow; needs blockCV)
-  run_retro: false       # retrospective (slow)
+  run_components: true      # stage 1 — single-component ranking (one fit per candidate)
+  run_fixed: true           # stage 2 — drop-one fixed-effect selection
+  run_cv: false             # cross-validate the AIC shortlist (SLOW: k fits per candidate)
+  run_family: true          # stage 3 — family
+  run_spatiotemporal: true  # stage 4 — spatiotemporal structure
+  run_mesh: false           # stage 5 — mesh resolution (slow)
+  run_mesh_cv: false        # spatial block CV across mesh cutoffs (slow; needs blockCV)
+  run_retro: false          # retrospective (slow)
+  cv_folds: 10              # folds for the shortlist CV
+  cv_top_n: 3               # how many AIC-ranked candidates to cross-validate
+  only: ""                  # compute only this candidate (fan a long stage across R sessions)
 execute:
   warning: false
   message: false
 ---
 
-<!-- Step 3: justify the model. Cross-validation and sensitivity — rank fixed effects and
-random-field structure, select the family and spatiotemporal structure, check mesh resolution
-and retrospective behaviour. Improve this document directly as the routine matures — see
-knowledge/workflow.md if you need background on the original method. Use the sdmTMBexperiments
-helpers; don't hand-roll CV. Each expensive block has its own toggle. Do NOT hard-wrap prose. -->
+<!-- Step 3: justify the model. Read index-template's knowledge/model-selection.md BEFORE
+editing this document — it is the method, and every rule in it exists to stop a selection
+table from lying. The mechanics are sdmTMBexperiments::sdmTMB_selection(); do not hand-roll a
+CV loop. Each stage has its own compute toggle and its own cache prefix, so an interrupted run
+resumes. Improve this document directly as the routine matures. Do NOT hard-wrap prose. -->
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = here::here())
 source(here::here("R", "00_setup.R"))
-dt   <- readRDS(file.path(out_dir, "compiled-data.rds")) |>
+
+dt <- readRDS(file.path(out_dir, "compiled-data.rds")) |>
   dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>
   dplyr::mutate(value = .data[[response_col]], month = as.integer(month)) |>
   dplyr::filter(!is.na(value))
-dt   <- sdmTMB::add_utm_columns(dt, ll_names = c("lon", "lat"), utm_crs = dt_crs)
+dt <- sdmTMB::add_utm_columns(dt, ll_names = c("lon", "lat"), utm_crs = dt_crs)
+dt$fyear <- factor(dt$year)   # for the "year as a fixed effect" candidates
+
 grid <- readRDS(file.path(out_dir, "prediction-grid.rds"))
-mesh <- sdmTMB::make_mesh(dt, xy_cols = c("X", "Y"), cutoff = cfg$MESH_CUTOFF_KM)
+
+# Years the survey skipped. An `ar1`/`rw` field assumes evenly spaced steps, so a gap makes
+# sdmTMB warn about irregular time spacing and can leave the fit grinding for a very long time;
+# `extra_time` gives the process a step for each missing year.
+extra_time <- setdiff(seq(min(dt$year), max(dt$year)), unique(dt$year))
+if (length(extra_time)) cat("Years with no stations, passed as extra_time:",
+                            paste(extra_time, collapse = ", "), "\n")
+
+sel_dir <- file.path(out_dir, "selection")   # one cache file per candidate, per stage
+# `only` computes a single named candidate and reads every other one from cache. A render with
+# `only` set is a WARMING run -- the stages whose candidates are not yet cached will show
+# crashed rows -- so use it to fill the cache candidate by candidate (see rendering.md), then
+# render once with only = "" to assemble the document from the cache.
+only    <- if (nzchar(params$only)) params$only else NULL
+
+# The full term set this project's config implies, sized to what the survey actually sampled:
+# a series covering three months cannot support the default `s(month)` basis, and sdmTMB fails
+# on it with an opaque degrees-of-freedom error rather than a useful one.
+has_multiple_gears <- dplyr::n_distinct(dt$geartype) > 1
+full_terms <- model_terms(cfg, has_multiple_gears, data = dt)
+full_formula <- build_formula(cfg, has_multiple_gears, data = dt)
+full_formula
+
+# Every fixed effect a candidate uses must exist in the prediction grid, or that candidate
+# yields no index (a warning and a crashed row, not a failed render). `fyear` is the one the
+# Step 2 grid does not carry, since the default model has no year effect.
+grid$fyear <- factor(grid$year, levels = levels(dt$fyear))
+missing_in_grid <- setdiff(
+  intersect(all.vars(full_formula), names(dt)), c("value", names(grid))
+)
+if (length(missing_in_grid)) {
+  warning("Not in the prediction grid, so any candidate using it will have no index: ",
+          paste(missing_in_grid, collapse = ", "))
+}
 ```
 
-## Model & structure selection
+The selection frame is built **once**, from every variable any candidate uses, so all candidates are fitted to identical records. Without it a candidate carrying `s(depth)` is silently fitted to a different subset than one that is not, and the AIC column compares two different quantities. The chosen specification is refitted to the full data in Step 4 — there is no reason to keep discarding records because a covariate that did not enter the model is missing for them.
 
-Fit the candidate models, then compare their indices, per-cell prediction differences, and
-sanity with `compare_models()`. Remember the assessment use-case when choosing the
-spatiotemporal structure: total/length indices use `ar1` and no year effect; the
-assessment-selected index often uses `iid` + `year` as a fixed effect (avoids temporal
-smoothing).
+```{r selection-frame}
+all_candidates <- c(
+  drop_one_candidates(full_terms),
+  list("Year effect" = stats::as.formula(
+    paste("value ~ 0 + fyear +", paste(full_terms, collapse = " + "))))
+)
 
-```{r selection, eval=params$run_selection}
-fit_ar1 <- readRDS(file.path(out_dir, "model-fit-total.rds"))     # from Step 2
-fit_iid <- update(fit_ar1, spatiotemporal = "iid")
-# add / drop terms and families as candidates, e.g.:
-# fit_nogear <- update(fit_ar1, formula = value ~ 0 + s(month) + s(depth))
-# fit_gamma  <- update(fit_ar1, family = sdmTMB::delta_gamma())
+dt_sel <- selection_frame(dt, all_candidates, extra = c("X", "Y", "year"))
+mesh_sel <- sdmTMB::make_mesh(dt_sel, xy_cols = c("X", "Y"), cutoff = cfg$MESH_CUTOFF_KM)
 
-cmp <- compare_models(fit_ar1, fit_iid, newdata = grid, reference_model = 1)
-plot(cmp, type = "index")
-plot(cmp, type = "spatial")
+cat(attr(dt_sel, "dropped"), "of", nrow(dt), "stations dropped as incomplete for at least",
+    "one candidate;", nrow(dt_sel), "used for selection.\n")
 ```
 
-## Mesh sensitivity
+```{r shared-args}
+# Everything the stages hold constant. Only what a stage deliberately varies should differ
+# between its rows, which is what makes each table interpretable.
+sel_args <- list(
+  data = dt_sel, mesh = mesh_sel, formula = full_formula, family = model_family,
+  time = "year", spatial = "on", spatiotemporal = cfg$SPATIOTEMPORAL,
+  cache_dir = sel_dir, only = only, complete_cases = FALSE
+)
+if (length(extra_time)) sel_args$extra_time <- extra_time
+run_stage <- function(candidates, prefix, ...) {
+  do.call(sdmTMB_selection,
+          c(list(candidates), sel_args, list(cache_prefix = prefix), list(...)))
+}
+```
+
+## Stage 1 — Component ranking
+
+Which single components carry information about {{SPECIES_NAME}} at all? Each candidate is one term plus the random fields, so the ranking says what each term is worth on its own — before asking, in stage 2, which of them survive together.
+
+```{r components, eval=params$run_components}
+# One candidate per term, taken from `full_terms` so the smooth bases match the ones the full
+# model will use — a component ranked with a different basis than it is later fitted with is
+# not the same term.
+one_term <- function(term) stats::as.formula(paste("value ~ 0 +", term))
+term_label <- function(term) {
+  v <- gsub("^s\\(([^,)]*).*$", "\\1", term)
+  c(geartype = "Gear type", month = "Month", depth = "Bottom depth",
+    temperature = "Temperature")[v] |>
+    (\(x) ifelse(is.na(x), sub("^(.)", "\\U\\1", v, perl = TRUE), x))()
+}
+comp_cands <- c(
+  stats::setNames(lapply(full_terms, one_term), vapply(full_terms, term_label, "")),
+  list(
+    "Year"              = value ~ 0 + fyear,
+    "Fields only"       = list(formula = value ~ 1),
+    "No spatial"        = list(formula = value ~ 1, spatial = "off"),
+    "No spatiotemporal" = list(formula = value ~ 1, spatiotemporal = "off")
+  )
+)
+
+sel_comp <- run_stage(comp_cands, "components")
+selection_kable(sel_comp, "Single-component ranking. All candidates carry a spatial and a spatiotemporal field unless the row says otherwise, and all are fitted to identical records.")
+```
+
+```{r components-plots, eval=params$run_components, fig.height=4}
+plot(sel_comp)
+plot(sel_comp, type = "index", newdata = grid)
+```
+
+Read the index plot as well as the table: a component that improves fit but leaves the index where it was is not worth arguing about.
+
+## Stage 2 — Fixed effects
+
+The full model, then each term removed in turn, then the null. A term earns its place if removing it costs fit.
+
+```{r fixed, eval=params$run_fixed}
+sel_fixed <- run_stage(all_candidates, "fixed")
+selection_kable(sel_fixed, "Fixed-effect candidates, ordered by AIC. Every row carries the same fields, the same family and the same mesh; only the fixed part differs.")
+```
+
+```{r fixed-plots, eval=params$run_fixed, fig.height=4}
+plot(sel_fixed)
+plot(sel_fixed, type = "index", newdata = grid)
+```
+
+::: {.callout-note}
+## Compare only comparable rows
+`Comparable` is `TRUE` for a candidate that fitted, whose Hessian was positive definite, and that saw the same number of records as the rest. **Do not quote an AIC difference unless both candidates are comparable** — a likelihood from a fit that did not resolve is not evidence. `Sanity` is reported but does not gate comparability: `sdmTMB::sanity()` fails routinely on usable fits, so treat a `Sanity = FALSE` winner as a reason to consider simplifying rather than as a row to ignore.
+:::
+
+## Cross-validating the shortlist
+
+AIC rewards fit to the data in hand. For an index feeding an assessment the question is different: how well does the model predict observations it has not seen? Cross-validation answers that, but costs `r params$cv_folds` fits per candidate, so it is applied to a **shortlist** — the `r params$cv_top_n` candidates with the lowest AIC, whatever they turn out to be. No model is designated in advance and none is exempt: re-run the ladder with different covariates and the shortlist follows the evidence.
+
+```{r cv, eval=(params$run_cv && params$run_fixed)}
+short <- best_candidate(sel_fixed, n = params$cv_top_n, by = "aic")
+cat("Shortlist:", paste(short, collapse = ", "), "\n")
+
+# Same cache prefix as the ladder above, deliberately: the shortlisted candidates' whole-frame
+# fits are already cached there, so this call pays only for the folds.
+sel_cv <- run_stage(all_candidates[short], "fixed", cv = params$cv_folds)
+selection_kable(sel_cv, "Cross-validated performance of the best-supported specifications. Hold-out log-likelihood is per held-out observation (higher is better); lower RMSE and MAE are better.")
+```
+
+```{r cv-agreement, eval=(params$run_cv && params$run_fixed)}
+agree <- identical(best_candidate(sel_cv), best_candidate(sel_fixed, by = "aic"))
+cat(if (agree) {
+  "Cross-validation and AIC select the same specification: the terms that improve fit also improve prediction."
+} else {
+  paste0("Cross-validation and AIC disagree. AIC prefers '", best_candidate(sel_fixed, by = "aic"),
+         "', cross-validation '", best_candidate(sel_cv), "'. Take the second more seriously for ",
+         "an index that updates an assessment: it measures prediction of data the model has not seen.")
+}, "\n")
+```
+
+The three criteria need not agree, and where they do not the disagreement is informative. Log-likelihood is sensitive to the whole predictive distribution, including the zeros; RMSE squares the errors and so is dominated by the largest catches; MAE weights every station equally and is the most robust to the long right tail. A candidate that wins on log-likelihood but not RMSE predicts the *shape* of the distribution well while missing some large hauls — for an index built by integrating a predicted field, usually the trade worth making.
+
+To measure *extrapolation* into ground the survey did not cover in a given year — the thing the index actually does when it integrates over the grid — pass spatially clustered folds instead of the default random ones:
+
+```r
+blocks <- blockCV::cv_spatial(x = sf_dt, column = "presence", k = params$cv_folds)
+sel_cv_spatial <- run_stage(all_candidates[short], "cv-spatial",
+                            cv = params$cv_folds, fold_ids = blocks$folds_ids)
+```
+
+and `lfo = TRUE` scores prediction of unseen *years*, which is the question an assessment update asks and the hardest one for a model whose terminal year sits at the end of an AR1 chain.
+
+## Stage 3 — Family
+
+Same formula, same fields, same records: only the likelihood differs, so AIC is comparable across these rows.
+
+```{r family, eval=params$run_family}
+sel_family <- run_stage(
+  list(
+    "Delta-lognormal" = list(family = sdmTMB::delta_lognormal()),
+    "Delta-gamma"     = list(family = sdmTMB::delta_gamma()),
+    "Tweedie"         = list(family = sdmTMB::tweedie())
+  ),
+  "family"
+)
+selection_kable(sel_family, "Model families, same formula and same spatiotemporal structure.")
+```
+
+```{r family-plots, eval=params$run_family, fig.height=4}
+plot(sel_family)
+plot(sel_family, type = "index", newdata = grid)
+
+for (nm in names(sel_family$fits)) {
+  if (is.null(sel_family$fits[[nm]])) next
+  # try(): residuals are not always computable, and one family that cannot produce them
+  # should not abort a figure at the end of a long render.
+  p <- try(plot_residual_qq(sel_family$fits[[nm]]) + ggplot2::labs(title = nm), silent = TRUE)
+  if (inherits(p, "try-error")) cat("Residuals unavailable for", nm, "\n") else print(p)
+}
+```
+
+## Stage 4 — Spatiotemporal structure
+
+```{r spatiotemporal, eval=params$run_spatiotemporal}
+sel_st <- run_stage(
+  list(
+    "AR1" = list(spatiotemporal = "ar1"),
+    "IID" = list(spatiotemporal = "iid"),
+    "RW"  = list(spatiotemporal = "rw"),
+    "Off" = list(spatiotemporal = "off"),
+    "IID + year effect" = list(
+      spatiotemporal = "iid",
+      formula = stats::as.formula(paste("value ~ 0 + fyear +",
+                                        paste(full_terms, collapse = " + ")))
+    )
+  ),
+  "spatiotemporal"
+)
+selection_kable(sel_st, "Spatiotemporal random-field structures. The last row deliberately changes two things at once - the structure and the year effect - because that pairing is the assessment-index configuration; read it against IID rather than against the others.")
+```
+
+```{r st-plots, eval=params$run_spatiotemporal, fig.height=4}
+plot(sel_st)
+plot(sel_st, type = "index", newdata = grid)
+```
+
+::: {.callout-important}
+## The assessment constrains this choice, not only the fit
+Total and length-group indices use `spatiotemporal = "ar1"` with **no** year fixed effect. The assessment-selected index (here: `r cfg$ASSESSMENT_MODEL`) often uses `iid` with **year as a fixed effect**, so the series is not temporally smoothed before the assessment model sees it. If the table prefers `ar1` for the assessment index, say so and carry `iid` anyway — with the reason stated. Confirm with the user which product the assessment consumes.
+:::
+
+## Stage 5 — Mesh resolution
+
+Only the cutoff differs between these rows, which is what makes the comparison interpretable. Report the mesh's actual vertex count (the `knots` column), read from the mesh — it is not the cutoff and not a number you can assume.
+
+```{r mesh, eval=params$run_mesh}
+mesh_cutoffs <- c(40, 60, 80, 100)
+sel_mesh <- run_stage(
+  stats::setNames(lapply(mesh_cutoffs, function(k) list(cutoff = k)),
+                  paste0(mesh_cutoffs, " km")),
+  "mesh"
+)
+selection_kable(sel_mesh, "Mesh cutoffs, same model and same records.")
+```
+
+```{r mesh-plots, eval=params$run_mesh, fig.height=4}
+plot(sel_mesh)
+plot(sel_mesh, type = "index", newdata = grid)
+```
+
+If the index is insensitive to the cutoff, the coarse mesh is capturing the structure that matters for a year index, and the cheap one is the right instrument.
 
 ```{r mesh-cv, eval=params$run_mesh_cv}
-fit_ar1 <- readRDS(file.path(out_dir, "model-fit-total.rds"))
-mcv <- sdmTMB_mesh_cv(fit_ar1, mesh_cutoffs = c(40, 60, 80, 100), k = 3)
-plot(mcv, metric = "sum_loglik")
-
-mcmp <- compare_meshes(fit_ar1, mesh_cutoffs = c(40, 60, 80, 100), newdata = grid)
-plot(mcmp, type = "index")
+fit_ref <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+mcv <- sdmTMB_mesh_cv(fit_ref, mesh_cutoffs = mesh_cutoffs, k = 3)   # needs blockCV
+plot(mcv)
 ```
 
 ## Retrospective
 
 ```{r retro, eval=params$run_retro}
-fit_ar1 <- readRDS(file.path(out_dir, "model-fit-total.rds"))
-retro <- sdmTMB_retro(fit_ar1, newdata = grid, nyears = 5)
+fit_ref <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+retro <- sdmTMB_retro(fit_ref, newdata = grid, nyears = 5)
 plot(retro)
 ```
 
 ## Decision
 
-State the chosen specification (formula, family, spatiotemporal structure, mesh cutoff,
-barrier) and the evidence for it, and record it in `memory/` as a `decision`. Then proceed to
-Step 4 (`index-final-report`).
+<!-- Replace this with the actual decision, quoting numbers READ FROM THE TABLES rather than
+typed in by hand, e.g.:
+
+  gap <- sel_fixed$table$deltaAIC[match(carried, sel_fixed$table$model)]
+
+Look values up by label, never by row position: the tables are sorted by the metric, so
+`AIC[1] - AIC[2]` is best-minus-runner-up regardless of which models you meant. -->
+
+State here: the chosen **formula**, **family**, **spatiotemporal structure**, **mesh cutoff** and **barrier** choice; the evidence for each (which table, which metric, by how much); and — where the carried-forward model is not the table's winner — the gap and the reason. Carrying a model that AIC does not prefer is legitimate (comparability across documents, an assessment requirement, a model that converges every year); hiding the gap is not.
+
+Record the decision and its evidence in `memory/`, then proceed to Step 4 (`index-final-report`).

@@ -14,7 +14,7 @@ IMR-internal) repos:
 | `docs/data/*.qmd` (compile) | `ref-index-paper/docs/data/{Redfish bottom trawl, BioticExplorer_database, Compile_all_data}.Rmd` |
 | `docs/data/<species>-<region>-data-report.qmd` | `ref-index-paper/docs/SI files/SI-Text-1-data.qmd` |
 | `docs/exploration/fit.qmd` | `ref-index-paper/docs/SI files/SI-Text-2-sdmTMB.qmd` |
-| `docs/exploration/validate.qmd` | `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd` |
+| `docs/exploration/validate.qmd` | `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd` (staged selection, status-coded tables, index per candidate) |
 | `docs/<species>/report.qmd` (+ `*-section.qmd`) | `ref-assessment-index/docs/benchmark/beaked/*` |
 
 As the routine is improved, index-template's documents will diverge from this original
@@ -61,10 +61,17 @@ abundance) model — to confirm the method works before adding complexity.
 
 ## Step 3 — Validate / select the model (skill: `index-validate-model`)
 
-Cross-validation and sensitivity: rank fixed effects and random-field structure by predictive
-skill, select the family and the spatiotemporal structure, and check mesh resolution and
-retrospective behaviour. Use `sdmTMB_mesh_cv`, `compare_models`, `compare_meshes`,
-`sdmTMB_retro`, `mohns_rho`.
+Five selection stages, in order: **component ranking** → **fixed effects** → **family** →
+**spatiotemporal structure** → **mesh resolution**, then a retrospective. Each is the same
+operation with a different thing varied, so all five run through
+`sdmTMBexperiments::sdmTMB_selection()`; `sdmTMB_mesh_cv`, `compare_meshes`, `sdmTMB_retro` and
+`mohns_rho` cover the sensitivity checks.
+
+**Read `model-selection.md` first.** The method is the comparability contract, not the function
+calls: candidates fitted to identical records, only `comparable` rows compared, hold-out
+likelihood per observation rather than summed, AIC first and cross-validation on a shortlist,
+the winner looked up in the metric column, and an honest statement of the gap whenever the
+carried-forward model is not the table's winner.
 
 ## Step 4 — Final report + extensions (skill: `index-final-report`)
 

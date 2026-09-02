@@ -65,12 +65,20 @@ used.
 
 ```{r fit, eval=params$refit_model}
 has_multiple_gears <- dplyr::n_distinct(dt$geartype) > 1
-form <- build_formula(cfg, has_multiple_gears)
+# `data = dt` sizes the smooth bases to what the survey actually sampled — a series covering
+# three months cannot support the default `s(month)` basis and fails with an opaque mgcv error.
+form <- build_formula(cfg, has_multiple_gears, data = dt)
+form
+
+# Years the survey skipped: an `ar1`/`rw` field assumes evenly spaced steps, and a gap makes
+# sdmTMB warn about irregular time spacing and can leave the fit grinding for a very long time.
+extra_time <- setdiff(seq(min(dt$year), max(dt$year)), unique(dt$year))
 
 fit <- sdmTMB::sdmTMB(
   form, data = dt, mesh = mesh,
   family = model_family,
   spatial = "on", spatiotemporal = cfg$SPATIOTEMPORAL, time = "year",
+  extra_time = if (length(extra_time)) extra_time else NULL,
   control = sdmTMB::sdmTMBcontrol(newton_loops = 2)
 )
 saveRDS(fit, file.path(out_dir, "model-fit-total.rds"))

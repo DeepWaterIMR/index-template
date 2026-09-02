@@ -112,3 +112,27 @@ index <- sdmTMB::get_index(pred, bias_correct = TRUE, area = grid_cell_area_nmi2
   use `spatiotemporal = "iid"` with `year` as a fixed effect. See `workflow.md` step 4.
 - Bias correction and `simulate()` are slow; cache model outputs to `data/output` and toggle
   refits off on re-render (`rendering.md`).
+- **Report the mesh's real vertex count**, read from the object (`mesh$mesh$n`), not the cutoff
+  and not the number of knots you asked for — the SPDE construction adds vertices for the
+  boundary and the extension beyond it.
+- **A failing fit can be the mesh draw, not the model.** A pathological mesh makes the
+  optimiser die with `NA/NaN gradient evaluation` within a minute while the *same* formula and
+  data fit cleanly from a different mesh. Before simplifying the specification, try a different
+  mesh (a different `cutoff`, or a different seed for a k-means mesh) — then keep the successful
+  one fixed so the fit stays reproducible.
+- **If `bias_correct = TRUE` runs out of memory** (`std::bad_alloc` in `MakeADHessObject2` — it
+  builds an AD Hessian over every grid cell × year), first coarsen the prediction grid: it only
+  has to resolve what the fitted field can represent, so a grid several times finer than the
+  mesh adds cells without adding information. If it still will not fit, run without bias
+  correction and **say so in the document**: the plug-in sum of `exp()` is biased low relative
+  to the corrected estimator. That bias largely cancels in a *relative* index rescaled to its
+  own mean, but the cancellation assumes the variance of the linear predictor is stable across
+  years, and the intervals should be read as indicative rather than exact.
+- **A survey that skipped a year needs `extra_time`.** With `spatiotemporal = "ar1"` or
+  `"rw"`, sdmTMB warns "Detected irregular time spacing" and the fit can grind for a very long
+  time or fail to resolve, because the AR1 process assumes evenly spaced steps. Pass the
+  missing years — `sdmTMB(..., extra_time = c(2006, 2008))` — so the process has a step for
+  each. Surveys skip years often enough that this is worth checking before every `ar1` fit:
+  `setdiff(min(dt$year):max(dt$year), unique(dt$year))`.
+- **Selection tables lie unless the candidates are comparable** — identical records, a common
+  likelihood scale, hold-out likelihood per observation. See `model-selection.md`.

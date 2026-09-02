@@ -65,7 +65,7 @@ Long renders are compiled with [`index-render`](skills/index-render/SKILL.md) in
 
 - [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) — the agent contract.
 - [`skills/`](skills/) — the `index-*` skills (installed globally).
-- [`knowledge/`](knowledge/) — the shared source of truth (method, data filtering, sdmTMB, helpers, packages, project structure, rendering).
+- [`knowledge/`](knowledge/) — the shared source of truth (method, data filtering, sdmTMB, helpers, model selection, packages, project structure, rendering).
 - [`project-template/`](project-template/) — the skeleton copied into each new project.
 - [`scaffold.R`](scaffold.R) — stamps a project from `config.yaml`.
 - [`examples/redfish/`](examples/redfish/) — a worked example.

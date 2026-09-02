@@ -22,8 +22,21 @@ Content was **adapted** (not copied; data/paths stripped) from:
   includes (mesh/barrier/retro/cv/survey-comparison); multiple indices (total, over-30 cm,
   length groups); selected index `Over 30 cm biomass` (iid + year effect) vs total (ar1).
   Also had `memory/index_template_plan.md` sketching this template.
+  From `SI-Text-3-model-selection.qmd` specifically: the staged selection sequence (component
+  ranking → drop-one fixed effects → family → spatiotemporal structure), `Crashed`/`Converged`/
+  `Sanity` as first-class table columns with a status-coded dot plot, ΔNLL alongside ΔAIC, and
+  plotting the resulting **index for every candidate at every stage**.
 - **sdmTMBexperiments** — the helper package all comparisons/grids/maps call. Coords in km,
   `coord_multiplier = 1000`; attach the package for ggOceanMaps land data.
+- **A commercial-CPUE (ERS logbook) sdmTMB index project** for the same institute. Supplied
+  the model-selection *discipline* now in `knowledge/model-selection.md`, none of its
+  commercial-fishery specifics: identical records for every candidate (one complete-case
+  selection frame, full data for the final fit); a `spec` column stating what each row fitted;
+  hold-out log-likelihood **per observation** with `Folds used` / `pd Hessian` /
+  `Comparable` columns; AIC ladder first and cross-validation on an AIC-ranked shortlist;
+  per-candidate resumable caches with an env-var fan-out across R processes; reporting the AIC
+  gap when the carried-forward model is not the winner; and looking values up by label rather
+  than row position in a rendered document.
 - **spict-template** — the scaffold/AGENTS/memory conventions mirrored here.
 - **BAIT** — the knowledge-pack + global-skills model, and the data-access layer.
 

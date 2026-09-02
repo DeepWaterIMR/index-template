@@ -90,6 +90,9 @@ Shared knowledge lives in `knowledge/`:
 - `sdmtmb.md` — sdmTMB essentials (mesh, families, spatial/spatiotemporal, predict,
   get_index, offset).
 - `sdmtmbexperiments.md` — the helper-function catalogue and conventions.
+- `model-selection.md` — **the comparability contract** for Step 3: identical records, when
+  AIC is and is not comparable, per-observation hold-out likelihood, the selection stages,
+  AIC-then-CV cost control, and how to report a carried-forward model that is not the winner.
 - `packages.md` — the package ecosystem and install lines.
 - `project-structure.md` — the structure of the generated project folder.
 - `rendering.md` — Quarto rendering, screen sessions, logs, toggles, figure formats.
@@ -110,13 +113,18 @@ Shared knowledge lives in `knowledge/`:
    numeric quality codes as a universal ordinal scale.
 4. **Start simple.** The first model has **no length groups** — confirm the method works,
    then extend. No temperature term by default.
-5. **Review before you render.** Quarto renders are slow. **Always code-review the changed
+5. **Keep selection comparable.** Candidates in a selection table must be fitted to identical
+   records, only `comparable` rows may be compared, hold-out likelihood is reported per
+   observation, and the winner is looked up in the metric column — never at row 1. See
+   `knowledge/model-selection.md`; use `sdmTMBexperiments::sdmTMB_selection()` rather than a
+   hand-rolled loop.
+6. **Review before you render.** Quarto renders are slow. **Always code-review the changed
    chunks/scripts (self-review or `/code-review`) and resolve issues before kicking off any
    expensive render.** See `knowledge/rendering.md`.
-6. **Render in a screen session** with a log in `logs/`, tell the user the session name, and
+7. **Render in a screen session** with a log in `logs/`, tell the user the session name, and
    suggest running on a server. Once `data/output` files exist, flip the caching toggles to
    `FALSE` so re-renders load instead of refitting.
-7. **Plan mode first.** After the questionnaire, present a plan and confirm before writing
+8. **Plan mode first.** After the questionnaire, present a plan and confirm before writing
    and compiling documents.
 
 ---
