@@ -74,6 +74,13 @@ Long renders are compiled with [`index-render`](skills/index-render/SKILL.md) in
 - [`scaffold.R`](scaffold.R) — stamps a project from `config.yaml`.
 - [`examples/redfish/`](examples/redfish/) — a worked example.
 
+## 🧰 Siblings
+
+- [**BAIT**](https://github.com/DeepWaterIMR/BAIT) — IMR Biotic data access, the database, privacy, maps, life history. **Required.**
+- [**academic-writing**](https://github.com/DeepWaterIMR/academic-writing) — the writing style, the document conventions, and the project skeleton this pack's scaffolder builds on. **Required for report generation.**
+- [**spict-template**](https://github.com/DeepWaterIMR/spict-template) — SPiCT biomass-dynamic stock assessments. **The index this pack exports is what a SPiCT assessment consumes**; step 4's selected index becomes SPiCT's `obsI`.
+- [**presentation-template**](https://github.com/DeepWaterIMR/presentation-template) — Quarto RevealJS slides.
+
 ## 🚨 You are still in charge
 
 This repo is designed to create a survey index template. It speeds up the data and model compilation, but does not create ready indices for assessment. It provides a place to start, not a final deliverable. Expert judgment is required for the final assessment.
