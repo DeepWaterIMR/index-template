@@ -44,3 +44,15 @@ Before opening a PR:
 2. Confirm every `SKILL.md` has valid frontmatter and its `knowledge/` links resolve.
 3. Dry-run the scaffold against `examples/redfish/config.yaml` and confirm no `{{...}}`
    placeholder remains in the generated project.
+
+## Version stamping
+
+The repo stamps `VERSION` and the README version line on every commit. Enable the hook once
+per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The patch level bumps automatically. To bump the minor or major level, edit `VERSION` by hand
+before committing — the hook keeps a hand-set version and only refreshes the date.

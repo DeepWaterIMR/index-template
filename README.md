@@ -2,6 +2,10 @@
 
 # 📈 index-template — Build sdmTMB survey indices with AI agents
 
+<!-- version -->
+**Version 0.2.0** (2026-09-09)
+<!-- /version -->
+
 **Teach your AI coding agent to build a spatiotemporal survey index for stock assessment — for any species, on your own machine.**
 
 index-template is a knowledge pack that turns a general coding agent (Claude Code, Codex, Cursor, Gemini CLI, Mistral, …) into a competent assistant for building [**sdmTMB**](https://sdmtmb.github.io/sdmTMB/) (Anderson et al., 2025) survey indices from IMR bottom-trawl data, reproducing the method of [Vihtakari et al. (2026, ICES Journal of Marine Science)](https://doi.org/10.1093/icesjms/fsag009).
