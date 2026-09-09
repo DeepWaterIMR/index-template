@@ -11,11 +11,15 @@ scaffold — do not start writing model code yet.**
 
 Read `knowledge/workflow.md` and `knowledge/project-structure.md` first.
 
+Before producing project files, read `knowledge/academic-writing.md` and the installed
+`academic-style`, `academic-conventions`, and `academic-data-report` skills. Apply their
+conventions to every generated artifact; retain index-template's scientific workflow.
+
 ## Step 1 — The questionnaire (ask; don't assume)
 
 Confirm the species name via BAIT's `taxaindex` lookup, then ask the questions below. Group
 them; offer sensible defaults; but **get real answers** — these drive the whole project. Record
-every answer for `memory/scaffold-interview.md`.
+every answer for `ai/memory/scaffold-interview.md`.
 
 1. **Species** — Norwegian `commonname`(s) for `filter_sp` (confirm via BAIT `taxaindex`),
    plus scientific name and a display name/slug.
@@ -36,7 +40,9 @@ every answer for `memory/scaffold-interview.md`.
    (km), barrier mesh yes/no. GIS polygons are **user-supplied** and go in the project's
    `data/source/` — never in the template.
 9. **Russian data** — included by default; ask only if they want to exclude it.
-10. **Outputs** — which are official vs exploratory vs draft?
+10. **Human metadata** — accountable authors and affiliations using academic-writing's
+    `AUTHORS` and `AFFILIATIONS` schema; confirm exact AI models and roles before reporting.
+11. **Outputs** — which are official vs exploratory vs draft?
 
 ## Step 2 — Plan (plan mode)
 
@@ -59,9 +65,12 @@ gear-width/geartype-covariate implication, or AR1 vs IID for the selected index)
    This copies `project-template/` into the target and stamps every `{{PLACEHOLDER}}`. Confirm
    no `{{...}}` remains afterwards.
 
+4. Initialize local Git in the new project if needed, with no remote. Commit or push only
+   when authorized by the user. Keep the scaffolded `VERSION` and `.here` files.
+
 ## Step 4 — Seed project memory
 
-In the new project's `memory/`:
+In the new project's `ai/memory/`:
 - Write `scaffold-interview.md` with the full Q&A (frontmatter `type: project`).
 - Update `MEMORY.md` with a one-line pointer.
 - Note any decisions still open in `workflow.md`.
@@ -70,4 +79,4 @@ In the new project's `memory/`:
 
 Tell the user the project is scaffolded and what's next: **Step 1 — compile the data**
 (`index-compile-data`), which needs a local BES database and IMR intranet. Remind them the
-generated project's `memory/` is the shared project memory to use from now on.
+generated project's `ai/memory/` is the shared project memory to use from now on.

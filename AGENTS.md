@@ -37,7 +37,7 @@ contain no data and no private information.**
    database paths, no local absolute paths (`/Users/...`, `OneDrive`, `CloudStorage`), no
    station coordinates. Templates use **placeholders and code**, never data.
 2. Real paths and real data only ever live in the **generated project folder**, which is the
-   user's own repo — and even there, `data/`, `logs/`, and `review/` are git-ignored.
+   user's own repo — and even there, `data/`, `logs/`, and `ai/review/` are git-ignored.
 3. **Reuse BAIT's privacy gate.** Model-training/data-retention is a one-time onboarding
    check recorded in `~/.bait/config.json` (`privacy_onboarded_at`). If that marker exists,
    do **not** re-gate routine local work. See BAIT's `skills/biotic-privacy/SKILL.md`.
@@ -131,10 +131,10 @@ Shared knowledge lives in `knowledge/`:
 
 ## Project memory (in the generated project)
 
-Each generated project has a committed, shared `memory/` folder. **Agents use that folder as
-project memory — not the agent's local per-machine memory.** Read `memory/MEMORY.md` (the
+Each generated project has a committed, shared `ai/memory/` folder. **Agents use that folder as
+project memory — not the agent's local per-machine memory.** Read `ai/memory/MEMORY.md` (the
 index) first; write a new markdown file with YAML frontmatter when you learn something
-non-obvious, and add a one-line pointer to `MEMORY.md`. See the project's `memory/README.md`.
+non-obvious, and add a one-line pointer to `MEMORY.md`. See the project's `ai/memory/README.md`.
 
 ---
 
@@ -150,3 +150,12 @@ non-obvious, and add a one-line pointer to `MEMORY.md`. See the project's `memor
   (soft-wrap editors). Code chunks follow normal formatting.
 - **Raster figures**: `fig-format: jpeg`; keep rendered HTML as small as feasible.
 - Comment density and naming match the surrounding file.
+
+## Academic-writing contract
+
+For every generated project artifact, read the installed `academic-style`,
+`academic-conventions`, and `academic-data-report` skills. index-template supplies the
+scientific workflow; academic-writing supplies structure, style, and publishing conventions.
+Follow index-template's `knowledge/academic-writing.md`. The workflow QMDs are HTML data
+reports under `docs/data-report/`; shared assets belong in `docs/assets/`, project memory in
+`ai/memory/`, tests in `ai/tests/`, and reviews in `ai/review/`.

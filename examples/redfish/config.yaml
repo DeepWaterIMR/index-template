@@ -9,6 +9,10 @@ SPECIES_NAME:  "Beaked redfish"
 SPECIES_SLUG:  "snabeluer"
 SPECIES_LATIN: "Sebastes mentella"
 
+# Confirm and fill human metadata before calling scaffold_index().
+AUTHORS: []
+AFFILIATIONS: []
+
 # --- Data selection ---
 FILTER_SP:
   - "snabeluer"

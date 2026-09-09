@@ -1,16 +1,106 @@
-# 00_setup.R — shared setup sourced by every document in this project.
+# 0_setup.R — shared setup sourced by every document in this project.
 # Loads packages, reads config.yaml into `cfg`, sets a ggplot theme, and derives a few
 # convenience values. Keep project-wide settings in config.yaml, not here.
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
 # --- Packages ---------------------------------------------------------------------------
-suppressPackageStartupMessages({
-  library(tidyverse)
-  library(sf)
-  library(sdmTMB)
-  library(sdmTMBexperiments)   # ATTACH (not ::) so ggOceanMaps land data is available
-})
+# Every package this project uses, named ONCE, with the GitHub repository for those that are
+# not on CRAN and NA for the rest. Missing packages install themselves on first run, on Linux,
+# macOS and Windows alike. `sdmTMBexperiments` must be ATTACHED (not used as `::`) so that
+# ggOceanMaps land data is on the search path.
+#
+# `here` and `knitr` are deliberately absent: each qmd calls `here::here()` in its own setup
+# chunk *before* sourcing this file, so both must already exist for that source() to run at all.
+# Quarto brings knitr, and here is a dependency of nearly everything else.
+#
+# If the project uses renv (there is an renv.lock), set install_missing_packages to FALSE below
+# and let renv::restore() own the library instead.
+packages <- c(
+  tidyverse = NA,
+  sf = NA,
+  scales = NA,
+  cowplot = NA,
+  ggspatial = NA,
+  ggnewscale = NA,
+  DBI = NA,        # Biotic database access for the Step 1 compile documents
+  duckdb = NA,
+  jsonlite = NA,
+  yaml = NA,
+  ggOceanMaps = "MikkoVihtakari/ggOceanMaps",
+  sdmTMB = "sdmTMB/sdmTMB",   # org renamed from pbs-assess; the old path still redirects
+  sdmTMBexperiments = "DeepWaterIMR/sdmTMBexperiments"
+)
+
+# Needed only on some paths, so not installed until something asks for them:
+#   sdmTMBextra  BARRIER: true (barrier mesh)
+#   blockCV      the spatial block cross-validation in validate.qmd
+#   ggFishPlots  the length-weight figure in the data report
+#   RstoxUtils   reading SPD files in compile-data.qmd
+#   future       parallel backends, if a document sets one up
+# Call ensure_packages("blockCV") in the chunk that needs one.
+optional_packages <- c(
+  sdmTMBextra = "pbs-assess/sdmTMBextra",
+  blockCV = NA,
+  ggFishPlots = "DeepWaterIMR/ggFishPlots",
+  RstoxUtils = "DeepWaterIMR/RstoxUtils",
+  future = NA
+)
+
+# Set FALSE, or export R_INDEX_INSTALL_MISSING=false, to run against the library as it is.
+install_missing_packages <- !identical(
+  tolower(Sys.getenv("R_INDEX_INSTALL_MISSING", unset = "true")), "false")
+
+install_packages_if_missing <- function(pkgs) {
+  missing <- pkgs[!vapply(names(pkgs), requireNamespace, logical(1), quietly = TRUE)]
+  if (!length(missing)) return(invisible(NULL))
+
+  # Rscript, knitr and Quarto sessions often start without a CRAN mirror and without a
+  # writable user library. Both are needed before installing.
+  repos <- getOption("repos")
+  if (is.na(repos["CRAN"]) || repos["CRAN"] == "@CRAN@") {
+    repos["CRAN"] <- "https://cloud.r-project.org"
+    options(repos = repos)
+  }
+  lib <- strsplit(Sys.getenv("R_LIBS_USER"), .Platform$path.sep)[[1]][1]
+  if (!is.na(lib) && nzchar(lib)) {
+    if (!dir.exists(lib)) dir.create(lib, recursive = TRUE)
+    .libPaths(c(lib, .libPaths()))
+  }
+  # Never fall into the interactive "install from sources?" question, which hangs unattended
+  # renders on macOS and Windows.
+  options(install.packages.compile.from.source = "never")
+
+  if (any(!is.na(missing)) && !requireNamespace("remotes", quietly = TRUE))
+    install.packages("remotes")
+
+  for (package in names(missing)) {
+    message("Installing missing package: ", package)
+    if (is.na(missing[[package]])) install.packages(package)
+    else remotes::install_github(missing[[package]], upgrade = "never")
+  }
+  invisible(NULL)
+}
+
+# Install-and-attach an optional package at the point of use, e.g. ensure_packages("blockCV").
+ensure_packages <- function(...) {
+  nms <- c(...)
+  known <- c(packages, optional_packages)
+  unknown <- setdiff(nms, names(known))
+  if (length(unknown))
+    stop("Not listed in `packages` or `optional_packages` in R/0_setup.R: ",
+         paste(unknown, collapse = ", "))
+  if (isTRUE(install_missing_packages)) install_packages_if_missing(known[nms])
+  invisible(lapply(nms, function(package) {
+    suppressPackageStartupMessages(library(package, character.only = TRUE))
+  }))
+}
+
+if (isTRUE(install_missing_packages)) install_packages_if_missing(packages)
+
+invisible(lapply(names(packages), function(package) {
+  suppressPackageStartupMessages(library(package, character.only = TRUE))
+}))
 # Data access (Biotic database) is provided by BAIT — see its biotic-connect skill.
 
 # --- Config -----------------------------------------------------------------------------
@@ -135,7 +225,8 @@ selection_kable <- function(sel, caption = NULL) {
 # --- Paths ------------------------------------------------------------------------------
 out_dir <- here::here(cfg$OUTPUT_DIR %||% "data/output")
 src_dir <- here::here(cfg$SOURCE_DIR %||% "data/source")
+figures_dir <- here::here(cfg$FIGURES_DIR %||% "figures")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 # --- Theme ------------------------------------------------------------------------------
-theme_set(theme_bw(base_size = 11))
+theme_set(theme_bw(base_size = cfg$BASE_SIZE %||% 12))

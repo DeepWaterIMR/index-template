@@ -44,7 +44,7 @@ across processes:
 
 ```bash
 for c in "Full model" "No depth" "No month"; do
-  Rscript -e "quarto::quarto_render('docs/exploration/validate.qmd',
+  Rscript -e "quarto::quarto_render('docs/data-report/validation/validate.qmd',
                                     execute_params = list(only = '$c'))"
 done
 ```
@@ -59,7 +59,7 @@ output to a log in `logs/`**:
 
 ```bash
 screen -dmS <species>-fit bash -c '
-  quarto render "docs/exploration/fit.qmd" > "logs/fit-$(date +%Y%m%d-%H%M%S).log" 2>&1
+  quarto render "docs/data-report/fit/fit.qmd" > "logs/fit-$(date +%Y%m%d-%H%M%S).log" 2>&1
 '
 ```
 
@@ -81,5 +81,5 @@ Follow the log with:  tail -f logs/fit-*.log
 - Keep rendered **HTML as small as feasible**: prefer jpeg rasters, sensible `fig-dpi`
   (~150–180 for screen), and avoid embedding huge point layers. Large length-group reports can
   reach tens of MB — watch the output size.
-- `_run_analysis.R` renders all documents and refreshes data; use it for a full rebuild, but
+- `docs/render.R` renders all documents and refreshes data; use it for a full rebuild, but
   the same review-then-screen-then-toggle discipline applies.

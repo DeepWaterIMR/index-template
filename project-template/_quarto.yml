@@ -1,0 +1,6 @@
+project:
+  type: default
+  render:
+    - docs/data-report/**/*.qmd
+    - "!docs/data-report/**/*-section.qmd"
+execute-dir: project

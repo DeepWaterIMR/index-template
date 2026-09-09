@@ -12,7 +12,11 @@ background material, see the lookup table in `knowledge/workflow.md`.)
 Read `knowledge/sdmtmb.md` and `knowledge/sdmtmbexperiments.md` first, and skim the sdmTMB docs
 (<https://pbs-assess.github.io/sdmTMB/>). **Attach `library(sdmTMBexperiments)`.**
 
-## Work in `docs/exploration/fit.qmd`
+Before producing project files, read `knowledge/academic-writing.md` and the installed
+`academic-style`, `academic-conventions`, and `academic-data-report` skills. Apply their
+conventions to every generated artifact; retain index-template's scientific workflow.
+
+## Work in `docs/data-report/fit/fit.qmd`
 
 1. **Load** the compiled dataset from `data/output/`. Set the response
    (`value = rho_biomass` or `rho_abundance` from `config.yaml`). Keep true zeros.

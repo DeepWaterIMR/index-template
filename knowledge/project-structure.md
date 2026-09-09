@@ -6,49 +6,48 @@
 
 ```
 <species>-index/
-├── AGENTS.md            # Project agent contract (points back at the index-template method)
-├── CLAUDE.md            # Thin Claude Code pointer
-├── config.yaml          # The one place species/area/model settings live
-├── _run_analysis.R      # Render all model documents and update data end-to-end
-├── .gitignore           # Ignores data/, logs/, review/, renders, .quarto/
-├── R/                   # Scripts shared by the docs
-│   └── 00_setup.R        # Packages, ggplot theme, paths, config loader
-├── memory/              # AI-agent PROJECT memory (use THIS, not local agent memory)
-│   ├── MEMORY.md         # Index of memory files (read first)
-│   ├── README.md         # Memory format & rules
-│   ├── scaffold-interview.md   # The questionnaire answers for this project
-│   ├── workflow.md       # Which steps are done / pending
-│   └── constraints.md    # Project-specific hard rules
+├── AGENTS.md / CLAUDE.md # Agent contract and pointer
+├── config.yaml          # Species, area, model settings, authors and affiliations
+├── VERSION              # version: 0.1.0 and scaffold date
+├── .here / _quarto.yml   # Project root and editor-preview execution directory
+├── .gitignore
+├── R/
+│   ├── 0_setup.R         # Packages, config, theme and model helpers
+│   └── report_helpers.R  # Narrative software citations from citation()
 ├── docs/
-│   ├── data/            # STEP 1 — data compilation + data report
-│   │   ├── compile-data.qmd            # reads BES (+ optional SPD), filters, dedupes, saves
-│   │   └── <species>-<region>-data-report.qmd # the data overview
-│   ├── exploration/     # STEPS 2–3 — fit & validate
-│   │   ├── fit.qmd                     # first feasible model (no length groups)
-│   │   └── validate.qmd                # model selection / CV / retro
-│   └── <species>/       # STEP 4 — final report + extensions (ONE folder per species)
-│       ├── report.qmd
-│       ├── mesh-section.qmd
-│       ├── barrier-section.qmd
-│       ├── retro-section.qmd
-│       ├── cross-validation-section.qmd
-│       └── survey-comparison-section.qmd
+│   ├── render.R         # Stage-aware HTML rendering
+│   ├── assets/          # references.bib, ICES JMS CSL, included static assets
+│   └── data-report/
+│       ├── survey-selection/compile-data.qmd
+│       ├── data-overview/<species>-<region>-data-report.qmd
+│       ├── fit/fit.qmd
+│       ├── validation/validate.qmd
+│       └── <species>/   # report.qmd and optional *-section.qmd includes
 ├── data/
-│   ├── source/          # local source data (GIS polygons, SPD extracts) — gitignored
-│   └── output/          # model outputs (.rds/.rda: fits, grids, predictions, indices) — gitignored
-├── logs/                # screen-session render logs — gitignored
-└── review/              # AI reviews, duplicate reports, temp — gitignored
+│   ├── source/          # Local source data and supplied GIS polygons; ignored
+│   └── output/          # Fits, grids, predictions and indices; ignored
+├── figures/             # Exported figures; ignored except README
+├── logs/                # Temporary render logs; ignored except README
+├── ai/
+│   ├── memory/          # Shared project memory: read MEMORY.md first
+│   ├── tests/           # Small validation checks and synthetic fixtures
+│   └── review/          # Reviews and audit outputs; ignored except README
+└── config/              # Tooling configuration, separate from analysis settings
 ```
+
+Add `website/` only for projects with a website. Add numbered analysis scripts under `R/`
+as the project develops; do not generate empty compiler scripts that pretend to implement
+the method. All documents and their rendered outputs stay under `docs/`.
+
 
 ## Rules
 
-- **`data/`, `logs/`, `review/` are git-ignored.** Only code, docs, `memory/`, and
+- **`data/`, `logs/`, `ai/review/` are git-ignored.** Only code, docs, `ai/memory/`, and
   `config.yaml` are committed. No raw data or private paths in tracked files.
 - **`config.yaml` is the single source of truth** for species, `filter_sp`, surveys, response
   variables, length groups, study area / CRS / grid size / mesh cutoff, gear-width policy, and
-  output paths. Documents read from it (via `R/00_setup.R`); they do not hard-code settings.
-- **Multiple species** → one `docs/<species>/` folder each, all sharing `docs/data/` and
-  `docs/exploration/` where the compiled dataset supports it. Otherwise scaffold one project
+  output paths. Documents read from it (via `R/0_setup.R`); they do not hard-code settings.
+- **Multiple species** → one `docs/data-report/<species>/` folder each, sharing earlier reports under `docs/data-report/` where the compiled dataset supports it. Otherwise scaffold one project
   per species.
 - **Outputs cache to `data/output/`.** Expensive fits, prediction grids, predictions, and
   indices are saved there so re-renders load instead of recomputing (toggle-controlled — see
@@ -56,7 +55,7 @@
 - **Regions belong in data-document filenames.** Set `REGION_SLUG` in `config.yaml`; the
   scaffold stamps it into `<species>-<region>-data-report.qmd`. This keeps split N62/S62
   projects and their rendered outputs unambiguous.
-- **Project memory lives in `memory/`.** Agents read `memory/MEMORY.md` first and write new
+- **Project memory lives in `ai/memory/`.** Agents read `ai/memory/MEMORY.md` first and write new
   memory files there — not in the agent's local per-machine memory.
 
 ## `config.yaml` fields (stamped by `scaffold.R`)
@@ -76,6 +75,18 @@ model-domain label, and set `ADD_REGION_IDENTIFIER: true` with `PARTITION_REGION
 `PARTITION_REGION_LAYER`. The compiled station data should then retain all qualifying hauls in
 the acquisition polygon and carry a `region` field for later model-stage filtering.
 
-The Step 1 documents include a dynamic `VERSION` date label, an index-template provenance
-statement, and a compact author block. Project-specific authors and affiliations belong in the
-YAML header; do not put raw data or machine-specific database paths there.
+All main documents follow `academic-writing.md`: human authors and affiliations, a
+`published-title: "Version"` date label, narrative software citations, and folded code.
+The scaffold requires `AUTHORS` and `AFFILIATIONS` using academic-writing's schema:
+
+```yaml
+AUTHORS:
+  - name: "<accountable human author>"
+    affiliation: institute
+AFFILIATIONS:
+  - id: institute
+    name: "<institution name>"
+```
+
+Replace the example values with confirmed human metadata. No private database paths belong
+in report metadata. `BASE_SIZE` defaults to 12; `FIGURES_DIR` defaults to `figures/`.

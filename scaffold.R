@@ -3,7 +3,7 @@
 # Copies the project-template/ skeleton into a target directory, renames the SPECIES
 # folder/files to the species slug, and stamps {{PLACEHOLDER}} identity tokens from a
 # config.yaml. Analytical settings (CRS, grid size, mesh cutoff, length groups, …) are NOT
-# hard-stamped — the documents read them from config.yaml at run time via R/00_setup.R. Only
+# hard-stamped — the documents read them from config.yaml at run time via R/0_setup.R. Only
 # identity and path-shaping tokens are stamped here.
 #
 # Usage:
@@ -68,6 +68,35 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
   if (!grepl("^[A-Za-z0-9-]+$", region_slug))
     stop("REGION_SLUG must contain only letters, numbers, and hyphens: got '", region_slug, "'")
 
+  # Human metadata follows academic-writing's config schema. YAML serialization preserves
+  # punctuation, Unicode, and multiple authors without treating their names as YAML code.
+  if (!length(cfg$AUTHORS) || !length(cfg$AFFILIATIONS))
+    stop("Supply accountable human AUTHORS and AFFILIATIONS in config.yaml before scaffolding.")
+  valid_name <- function(x) is.list(x) && is.character(x$name) &&
+    length(x$name) == 1L && !is.na(x$name) && nzchar(trimws(x$name))
+  if (!all(vapply(c(cfg$AUTHORS, cfg$AFFILIATIONS), valid_name, logical(1))))
+    stop("Every author and affiliation must have a non-empty name.")
+  affiliation_ids <- vapply(cfg$AFFILIATIONS, function(x) {
+    if (is.null(x$id)) "" else as.character(x$id)
+  }, character(1))
+  if (any(!nzchar(affiliation_ids)) || anyDuplicated(affiliation_ids))
+    stop("AFFILIATIONS must have unique non-empty IDs.")
+  author_refs <- lapply(cfg$AUTHORS, function(x) unlist(x$affiliation, use.names = FALSE))
+  if (any(lengths(author_refs) == 0L) ||
+      !all(unlist(author_refs, use.names = FALSE) %in% affiliation_ids))
+    stop("Each author must reference a configured affiliation ID.")
+  authors <- lapply(seq_along(cfg$AUTHORS), function(i) {
+    author <- cfg$AUTHORS[[i]]
+    author$affiliation <- NULL
+    author$affiliations <- lapply(author_refs[[i]], function(id) list(ref = id))
+    if (is.null(author$corresponding)) author$corresponding <- i == 1L
+    author
+  })
+  yaml_block <- function(x) paste0("\n", paste0("  ",
+    strsplit(trimws(yaml::as.yaml(x, handlers = list(logical = function(value)
+      structure(ifelse(value, "true", "false"), class = "verbatim")))),
+      "\n", fixed = TRUE)[[1]], collapse = "\n"))
+
   # --- Copy the skeleton --------------------------------------------------------------
   if (dir.exists(target) && length(list.files(target, all.files = TRUE, no.. = TRUE)))
     stop("Target '", target, "' exists and is not empty. Choose an empty/new directory.")
@@ -82,8 +111,8 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
 
   # --- Rename SPECIES folder and SPECIES-* files to the slug --------------------------
   if (!dry) {
-    sp_dir <- file.path(target, "docs", "SPECIES")
-    if (dir.exists(sp_dir)) file.rename(sp_dir, file.path(target, "docs", slug))
+    sp_dir <- file.path(target, "docs", "data-report", "SPECIES")
+    if (dir.exists(sp_dir)) file.rename(sp_dir, file.path(target, "docs", "data-report", slug))
     for (f in list.files(target, recursive = TRUE, full.names = TRUE)) {
       if (grepl("SPECIES", basename(f)))
         file.rename(f, file.path(dirname(f), gsub("SPECIES", slug, basename(f))))
@@ -100,7 +129,9 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
     "{{SPECIES_NAME}}"  = as.character(cfg$SPECIES_NAME),
     "{{SPECIES_SLUG}}"  = as.character(cfg$SPECIES_SLUG),
     "{{SPECIES_LATIN}}" = as.character(cfg$SPECIES_LATIN),
-    "{{REGION_SLUG}}"   = region_slug
+    "{{REGION_SLUG}}"   = region_slug,
+    "{{AUTHORS_YAML}}" = yaml_block(authors),
+    "{{AFFILIATIONS_YAML}}" = yaml_block(cfg$AFFILIATIONS)
   )
   text_ext <- c("qmd", "rmd", "r", "md", "yaml", "yml", "css", "bib")
   scan_root <- if (dry) template else target
@@ -118,6 +149,11 @@ scaffold_index <- function(config, target, template = NULL, dry = FALSE) {
       writeBin(charToRaw(enc2utf8(new)), f)
   }
   msg("Stamped identity tokens (SPECIES_NAME/SLUG/LATIN)")
+
+  if (!dry) {
+    writeLines(c("version: 0.1.0", paste0("date: ", Sys.Date())),
+               file.path(target, "VERSION"))
+  }
 
   # --- Sanity check: no leftover identity placeholders --------------------------------
   if (!dry) {

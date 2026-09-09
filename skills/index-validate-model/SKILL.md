@@ -13,7 +13,11 @@ model is not the winner.
 method is the comparability contract in the first file; the functions are only the mechanics.
 Use `sdmTMBexperiments::sdmTMB_selection()` — do not hand-roll a CV loop.
 
-## Work in `docs/exploration/validate.qmd`
+Before producing project files, read `knowledge/academic-writing.md` and the installed
+`academic-style`, `academic-conventions`, and `academic-data-report` skills. Apply their
+conventions to every generated artifact; retain index-template's scientific workflow.
+
+## Work in `docs/data-report/validation/validate.qmd`
 
 The document already has the five stages wired up, each with its own compute toggle and its own
 cache prefix. Adapt the candidate lists to the species and config; do not restructure it

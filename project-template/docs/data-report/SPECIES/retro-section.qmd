@@ -1,0 +1,13 @@
+<!-- Included by report.qmd. Shares its params. Retrospective peels + Mohn's rho. -->
+
+```{r, eval=params$include_retro}
+#| label: fig-retro-section-retro-section
+#| fig-cap: "Retrospective index estimates after successive terminal-year removals."
+#| output: asis
+cat("## Retrospective\n\n")
+fit_total <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+retro <- sdmTMB_retro(fit_total, newdata = grid, nyears = 5)
+print(plot(retro))
+```
+
+<!-- Describe the supported finding and refer to @fig-retro-section-retro-section. Confirm caption units, sample size, and interval definitions against the generated result. -->

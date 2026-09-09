@@ -10,6 +10,10 @@ report, and export the selected index. Modelled on
 `ref-assessment-index/docs/benchmark/beaked/` (the `reb-assessment-survey-indices.qmd` document
 and its `*-section.qmd` includes).
 
+Before producing project files, read `knowledge/academic-writing.md` and the installed
+`academic-style`, `academic-conventions`, and `academic-data-report` skills. Apply their
+conventions to every generated artifact; retain index-template's scientific workflow.
+
 ## Work in `docs/<slug>/report.qmd`
 
 1. **Multiple indices** — fit/predict the products the assessment needs:

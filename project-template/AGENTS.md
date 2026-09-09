@@ -20,8 +20,8 @@ https://github.com/DeepWaterIMR/index-template`).
 
 1. **`config.yaml` is the single source of truth.** Species, surveys, response, length
    groups, CRS, map display settings, grid size, mesh cutoff, gear-width policy, and the selected
-   index all live there and are read at run time by `R/00_setup.R`. Don't hard-code them in the qmds.
-2. **No data or private paths in tracked files.** `data/`, `logs/`, and `review/` are
+   index all live there and are read at run time by `R/0_setup.R`. Don't hard-code them in the qmds.
+2. **No data or private paths in tracked files.** `data/`, `logs/`, and `ai/review/` are
    git-ignored. Real GIS polygons and data extracts go in `data/source/` only.
 3. **Define sampling units and filter correctly.** Follow index-template's
    `data-filtering.md` for stable haul keys, catchsample aggregation, survey-specific
@@ -31,9 +31,8 @@ https://github.com/DeepWaterIMR/index-template`).
 5. **Step 1 roles are distinct.** `compile-data.qmd` is survey selection and coverage;
    `<species>-<region>-data-report.qmd` is the compiled station/response report and owns length
    products and diagnostics. Do not duplicate length-allocation material in survey selection.
-6. **Document provenance is explicit.** Keep the `VERSION` date label and the
-   index-template/researcher-supervised-AI provenance statement near the beginning of both Step 1
-   documents; add project-specific authors and affiliations in their YAML headers.
+6. **Document provenance is explicit.** Keep the `published-title: "Version"` date label and the
+   index-template/researcher-supervised-AI provenance statement in every main report; add project-specific authors and affiliations in their YAML headers.
 7. **Review before you render.** Renders are slow — code-review changed chunks and fix issues
    first, then render in a screen session with a log in `logs/` (index-template `index-render`
    skill). Flip compute toggles to `FALSE` once `data/output/` files exist.
@@ -42,20 +41,29 @@ https://github.com/DeepWaterIMR/index-template`).
 
 | Step | Document(s) | index-template skill |
 |---|---|---|
-| 1. Compile & report data | `docs/data/compile-data.qmd`, `docs/data/{{SPECIES_SLUG}}-{{REGION_SLUG}}-data-report.qmd` | `index-compile-data` |
-| 2. Fit first model | `docs/exploration/fit.qmd` | `index-fit-model` |
-| 3. Validate / select | `docs/exploration/validate.qmd` | `index-validate-model` |
-| 4. Final report + export | `docs/{{SPECIES_SLUG}}/report.qmd` (+ `*-section.qmd`) | `index-final-report` |
+| 1. Compile & report data | `docs/data-report/survey-selection/compile-data.qmd`, `docs/data-report/data-overview/{{SPECIES_SLUG}}-{{REGION_SLUG}}-data-report.qmd` | `index-compile-data` |
+| 2. Fit first model | `docs/data-report/fit/fit.qmd` | `index-fit-model` |
+| 3. Validate / select | `docs/data-report/validation/validate.qmd` | `index-validate-model` |
+| 4. Final report + export | `docs/data-report/{{SPECIES_SLUG}}/report.qmd` (+ `*-section.qmd`) | `index-final-report` |
 
-Full rebuild: `Rscript _run_analysis.R` (slow — see the rendering rules).
+Full rebuild: `Rscript docs/render.R` (slow — see the rendering rules).
 
 ## Project memory
 
-Read [`memory/MEMORY.md`](memory/MEMORY.md) first. Record non-obvious decisions as new memory
-files here (this shared `memory/` folder — **not** your local per-machine memory) and add a
-pointer to `MEMORY.md`. The questionnaire answers are in `memory/scaffold-interview.md`.
+Read [`ai/memory/MEMORY.md`](ai/memory/MEMORY.md) first. Record non-obvious decisions as new memory
+files here (this shared `ai/memory/` folder — **not** your local per-machine memory) and add a
+pointer to `MEMORY.md`. The questionnaire answers are in `ai/memory/scaffold-interview.md`.
 
 ## House style
 
 tidyverse; coordinates in km for sdmTMB; attach `library(sdmTMBexperiments)`; **do not
 hard-wrap prose** in qmd files; raster figures `fig-format: jpeg`; keep HTML small.
+
+## Academic-writing contract
+
+For every generated project artifact, read the installed `academic-style`,
+`academic-conventions`, and `academic-data-report` skills. index-template supplies the
+scientific workflow; academic-writing supplies structure, style, and publishing conventions.
+Follow index-template's `knowledge/academic-writing.md`. The workflow QMDs are HTML data
+reports under `docs/data-report/`; shared assets belong in `docs/assets/`, project memory in
+`ai/memory/`, tests in `ai/tests/`, and reviews in `ai/review/`.

@@ -9,7 +9,7 @@ metadata:
 
 # Constraints — {{SPECIES_NAME}}
 
-- **No data / no private paths in tracked files.** `data/`, `logs/`, `review/` are
+- **No data / no private paths in tracked files.** `data/`, `logs/`, `ai/review/` are
   git-ignored; GIS polygons and extracts live in `data/source/` only.
 - **Filtering is fixed by method.** Reproduce index-template `data-filtering.md` exactly
   (documented `gearcondition` set, conditional `samplequality`, `stationtype` exclusions, duplicate

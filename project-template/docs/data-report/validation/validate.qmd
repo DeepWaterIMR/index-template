@@ -4,7 +4,10 @@ subtitle: "Step 3 · index-template"
 format:
   html:
     toc: true
+    toc-title: "{{SPECIES_NAME}} — model validation & selection"
     code-fold: true
+    code-summary: "Show code"
+    code-tools: true
     fig-format: jpeg
     fig-dpi: 160
     embed-resources: true
@@ -21,9 +24,25 @@ params:
   cv_top_n: 3               # how many AIC-ranked candidates to cross-validate
   only: ""                  # compute only this candidate (fan a long stage across R sessions)
 execute:
+  fig-width: 6.69
   warning: false
   message: false
+author: {{AUTHORS_YAML}}
+affiliations: {{AFFILIATIONS_YAML}}
+date: today
+date-format: "YYYY-MM-DD"
+published-title: "Version"
+lang: en-US
+bibliography:
+  - ../../assets/references.bib
+  - ../../assets/validate-software.bib
+csl: ../../assets/ices_jms.csl
 ---
+
+# Purpose
+
+<!-- State the report question, intended reader, downstream use, and source-data version. -->
+
 
 <!-- Step 3: justify the model. Read index-template's knowledge/model-selection.md BEFORE
 editing this document — it is the method, and every rule in it exists to stop a selection
@@ -31,9 +50,13 @@ table from lying. The mechanics are sdmTMBexperiments::sdmTMB_selection(); do no
 CV loop. Each stage has its own compute toggle and its own cache prefix, so an interrupted run
 resumes. Improve this document directly as the routine matures. Do NOT hard-wrap prose. -->
 
+# Data
+
+<!-- Describe input coverage, exclusions, units, and source versions with inline R. -->
+
 ```{r setup}
 knitr::opts_knit$set(root.dir = here::here())
-source(here::here("R", "00_setup.R"))
+source(here::here("R", "0_setup.R"))
 
 dt <- readRDS(file.path(out_dir, "compiled-data.rds")) |>
   dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>
@@ -110,11 +133,14 @@ run_stage <- function(candidates, prefix, ...) {
 }
 ```
 
+# Analysis
+
 ## Stage 1 — Component ranking
 
 Which single components carry information about {{SPECIES_NAME}} at all? Each candidate is one term plus the random fields, so the ranking says what each term is worth on its own — before asking, in stage 2, which of them survive together.
 
-```{r components, eval=params$run_components}
+```{r, eval=params$run_components}
+#| label: tbl-validate-components
 # One candidate per term, taken from `full_terms` so the smooth bases match the ones the full
 # model will use — a component ranked with a different basis than it is later fitted with is
 # not the same term.
@@ -139,10 +165,16 @@ sel_comp <- run_stage(comp_cands, "components")
 selection_kable(sel_comp, "Single-component ranking. All candidates carry a spatial and a spatiotemporal field unless the row says otherwise, and all are fitted to identical records.")
 ```
 
-```{r components-plots, eval=params$run_components, fig.height=4}
+<!-- Describe the supported finding and refer to @tbl-validate-components. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+```{r, eval=params$run_components, fig.height=4}
+#| label: fig-validate-components-plots
+#| fig-cap: "Relative support and estimated indices for the single-component candidates."
 plot(sel_comp)
 plot(sel_comp, type = "index", newdata = grid)
 ```
+
+<!-- Describe the supported finding and refer to @fig-validate-components-plots. Confirm caption units, sample size, and interval definitions against the generated result. -->
 
 Read the index plot as well as the table: a component that improves fit but leaves the index where it was is not worth arguing about.
 
@@ -150,15 +182,22 @@ Read the index plot as well as the table: a component that improves fit but leav
 
 The full model, then each term removed in turn, then the null. A term earns its place if removing it costs fit.
 
-```{r fixed, eval=params$run_fixed}
+```{r, eval=params$run_fixed}
+#| label: tbl-validate-fixed
 sel_fixed <- run_stage(all_candidates, "fixed")
 selection_kable(sel_fixed, "Fixed-effect candidates, ordered by AIC. Every row carries the same fields, the same family and the same mesh; only the fixed part differs.")
 ```
 
-```{r fixed-plots, eval=params$run_fixed, fig.height=4}
+<!-- Describe the supported finding and refer to @tbl-validate-fixed. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+```{r, eval=params$run_fixed, fig.height=4}
+#| label: fig-validate-fixed-plots
+#| fig-cap: "Relative support and estimated indices for the fixed-effect candidates."
 plot(sel_fixed)
 plot(sel_fixed, type = "index", newdata = grid)
 ```
+
+<!-- Describe the supported finding and refer to @fig-validate-fixed-plots. Confirm caption units, sample size, and interval definitions against the generated result. -->
 
 ::: {.callout-note}
 ## Compare only comparable rows
@@ -169,7 +208,8 @@ plot(sel_fixed, type = "index", newdata = grid)
 
 AIC rewards fit to the data in hand. For an index feeding an assessment the question is different: how well does the model predict observations it has not seen? Cross-validation answers that, but costs `r params$cv_folds` fits per candidate, so it is applied to a **shortlist** — the `r params$cv_top_n` candidates with the lowest AIC, whatever they turn out to be. No model is designated in advance and none is exempt: re-run the ladder with different covariates and the shortlist follows the evidence.
 
-```{r cv, eval=(params$run_cv && params$run_fixed)}
+```{r, eval=(params$run_cv && params$run_fixed)}
+#| label: tbl-validate-cv
 short <- best_candidate(sel_fixed, n = params$cv_top_n, by = "aic")
 cat("Shortlist:", paste(short, collapse = ", "), "\n")
 
@@ -178,6 +218,8 @@ cat("Shortlist:", paste(short, collapse = ", "), "\n")
 sel_cv <- run_stage(all_candidates[short], "fixed", cv = params$cv_folds)
 selection_kable(sel_cv, "Cross-validated performance of the best-supported specifications. Hold-out log-likelihood is per held-out observation (higher is better); lower RMSE and MAE are better.")
 ```
+
+<!-- Describe the supported finding and refer to @tbl-validate-cv. Confirm caption units, sample size, and interval definitions against the generated result. -->
 
 ```{r cv-agreement, eval=(params$run_cv && params$run_fixed)}
 agree <- identical(best_candidate(sel_cv), best_candidate(sel_fixed, by = "aic"))
@@ -195,6 +237,7 @@ The three criteria need not agree, and where they do not the disagreement is inf
 To measure *extrapolation* into ground the survey did not cover in a given year — the thing the index actually does when it integrates over the grid — pass spatially clustered folds instead of the default random ones:
 
 ```r
+ensure_packages("blockCV")   # installed on demand; see R/0_setup.R
 blocks <- blockCV::cv_spatial(x = sf_dt, column = "presence", k = params$cv_folds)
 sel_cv_spatial <- run_stage(all_candidates[short], "cv-spatial",
                             cv = params$cv_folds, fold_ids = blocks$folds_ids)
@@ -206,7 +249,8 @@ and `lfo = TRUE` scores prediction of unseen *years*, which is the question an a
 
 Same formula, same fields, same records: only the likelihood differs, so AIC is comparable across these rows.
 
-```{r family, eval=params$run_family}
+```{r, eval=params$run_family}
+#| label: tbl-validate-family
 sel_family <- run_stage(
   list(
     "Delta-lognormal" = list(family = sdmTMB::delta_lognormal()),
@@ -218,7 +262,11 @@ sel_family <- run_stage(
 selection_kable(sel_family, "Model families, same formula and same spatiotemporal structure.")
 ```
 
-```{r family-plots, eval=params$run_family, fig.height=4}
+<!-- Describe the supported finding and refer to @tbl-validate-family. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+```{r, eval=params$run_family, fig.height=4}
+#| label: fig-validate-family-plots
+#| fig-cap: "Relative support, estimated indices, and residual diagnostics for candidate families."
 plot(sel_family)
 plot(sel_family, type = "index", newdata = grid)
 
@@ -231,9 +279,12 @@ for (nm in names(sel_family$fits)) {
 }
 ```
 
+<!-- Describe the supported finding and refer to @fig-validate-family-plots. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
 ## Stage 4 — Spatiotemporal structure
 
-```{r spatiotemporal, eval=params$run_spatiotemporal}
+```{r, eval=params$run_spatiotemporal}
+#| label: tbl-validate-spatiotemporal
 sel_st <- run_stage(
   list(
     "AR1" = list(spatiotemporal = "ar1"),
@@ -251,10 +302,16 @@ sel_st <- run_stage(
 selection_kable(sel_st, "Spatiotemporal random-field structures. The last row deliberately changes two things at once - the structure and the year effect - because that pairing is the assessment-index configuration; read it against IID rather than against the others.")
 ```
 
-```{r st-plots, eval=params$run_spatiotemporal, fig.height=4}
+<!-- Describe the supported finding and refer to @tbl-validate-spatiotemporal. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+```{r, eval=params$run_spatiotemporal, fig.height=4}
+#| label: fig-validate-st-plots
+#| fig-cap: "Relative support and estimated indices for the spatiotemporal candidates."
 plot(sel_st)
 plot(sel_st, type = "index", newdata = grid)
 ```
+
+<!-- Describe the supported finding and refer to @fig-validate-st-plots. Confirm caption units, sample size, and interval definitions against the generated result. -->
 
 ::: {.callout-important}
 ## The assessment constrains this choice, not only the fit
@@ -265,7 +322,8 @@ Total and length-group indices use `spatiotemporal = "ar1"` with **no** year fix
 
 Only the cutoff differs between these rows, which is what makes the comparison interpretable. Report the mesh's actual vertex count (the `knots` column), read from the mesh — it is not the cutoff and not a number you can assume.
 
-```{r mesh, eval=params$run_mesh}
+```{r, eval=params$run_mesh}
+#| label: tbl-validate-mesh
 mesh_cutoffs <- c(40, 60, 80, 100)
 sel_mesh <- run_stage(
   stats::setNames(lapply(mesh_cutoffs, function(k) list(cutoff = k)),
@@ -275,26 +333,40 @@ sel_mesh <- run_stage(
 selection_kable(sel_mesh, "Mesh cutoffs, same model and same records.")
 ```
 
-```{r mesh-plots, eval=params$run_mesh, fig.height=4}
+<!-- Describe the supported finding and refer to @tbl-validate-mesh. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+```{r, eval=params$run_mesh, fig.height=4}
+#| label: fig-validate-mesh-plots
+#| fig-cap: "Relative support and estimated indices for candidate mesh resolutions."
 plot(sel_mesh)
 plot(sel_mesh, type = "index", newdata = grid)
 ```
 
+<!-- Describe the supported finding and refer to @fig-validate-mesh-plots. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
 If the index is insensitive to the cutoff, the coarse mesh is capturing the structure that matters for a year index, and the cheap one is the right instrument.
 
-```{r mesh-cv, eval=params$run_mesh_cv}
+```{r, eval=params$run_mesh_cv}
+#| label: fig-validate-mesh-cv
+#| fig-cap: "Cross-validation results for candidate mesh resolutions."
 fit_ref <- readRDS(file.path(out_dir, "model-fit-total.rds"))
 mcv <- sdmTMB_mesh_cv(fit_ref, mesh_cutoffs = mesh_cutoffs, k = 3)   # needs blockCV
 plot(mcv)
 ```
 
+<!-- Describe the supported finding and refer to @fig-validate-mesh-cv. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
 ## Retrospective
 
-```{r retro, eval=params$run_retro}
+```{r, eval=params$run_retro}
+#| label: fig-validate-retro
+#| fig-cap: "Retrospective index estimates after successive terminal-year removals."
 fit_ref <- readRDS(file.path(out_dir, "model-fit-total.rds"))
 retro <- sdmTMB_retro(fit_ref, newdata = grid, nyears = 5)
 plot(retro)
 ```
+
+<!-- Describe the supported finding and refer to @fig-validate-retro. Confirm caption units, sample size, and interval definitions against the generated result. -->
 
 ## Decision
 
@@ -308,4 +380,49 @@ Look values up by label, never by row position: the tables are sorted by the met
 
 State here: the chosen **formula**, **family**, **spatiotemporal structure**, **mesh cutoff** and **barrier** choice; the evidence for each (which table, which metric, by how much); and — where the carried-forward model is not the table's winner — the gap and the reason. Carrying a model that AIC does not prefer is legitimate (comparability across documents, an assessment requirement, a model that converges every year); hiding the gap is not.
 
-Record the decision and its evidence in `memory/`, then proceed to Step 4 (`index-final-report`).
+Record the decision and its evidence in `ai/memory/`, then proceed to Step 4 (`index-final-report`).
+
+
+# Results and recommendations
+
+<!-- Summarize supported findings using inline R. Identify provisional outputs, unresolved checks, and the values recommended for the next workflow step. Refer to every figure and table in a short interpretive sentence. -->
+
+# Software and reproducibility
+
+This report followed [index-template](https://github.com/DeepWaterIMR/index-template), with document structure and conventions from [academic-writing](https://github.com/DeepWaterIMR/academic-writing).
+
+```{r software-citations}
+#| results: asis
+source(here::here("R", "report_helpers.R"))
+# Add every additional package that influenced this report, including optional packages.
+report_software(
+  c("tidyverse", "ggplot2", "sf", "ggOceanMaps", "sdmTMB", "sdmTMBexperiments", "knitr"),
+  here::here("docs", "assets", "validate-software.bib")
+)
+```
+
+<!-- Before release, replace this draft disclosure with the exact researcher-confirmed model names and roles. Append to existing model lists; never claim approval that has not occurred. -->
+AI-assisted drafting and analysis require researcher review. The responsible authors must confirm the AI models used and approve the final content.
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+# Appendix: analysis scripts {.appendix}
+
+<!-- Add one folded listing for each additional R script used by this report, in run order. Do not use placeholder paths or silently omit missing scripts. -->
+
+```{r setup-appendix, code = readLines(here::here("R", "0_setup.R")), eval = FALSE, echo = TRUE}
+#| lst-label: lst-setup-script
+#| lst-cap: "Complete shared package, configuration, and model setup."
+#| code-fold: true
+#| code-summary: "Show setup script"
+```
+
+```{r helpers-appendix, code = readLines(here::here("R", "report_helpers.R")), eval = FALSE, echo = TRUE}
+#| lst-label: lst-report-helpers
+#| lst-cap: "Complete software citation helper."
+#| code-fold: true
+#| code-summary: "Show report helpers"
+```

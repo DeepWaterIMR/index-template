@@ -1,5 +1,5 @@
 # This project holds CODE, DOCS, and MEMORY — never raw data or private paths.
-# data/, logs/, and review/ are ignored; only READMEs in them are kept.
+# data/, logs/, and ai/review/ are ignored; only READMEs in them are kept.
 
 # --- Data, outputs, logs, reviews ---
 data/*
@@ -11,8 +11,8 @@ data/output/*
 !data/output/README.md
 logs/*
 !logs/README.md
-review/*
-!review/README.md
+ai/review/*
+!ai/review/README.md
 
 # --- Raw data extensions (safety net) ---
 *.rds
@@ -51,3 +51,8 @@ review/*
 Thumbs.db
 .vscode/
 .idea/
+
+# Generated assets and exported figures
+/docs/assets/*-software.bib
+/figures/*
+!/figures/README.md

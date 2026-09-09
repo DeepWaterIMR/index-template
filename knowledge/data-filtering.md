@@ -120,7 +120,7 @@ catchsample records remain missing until reviewed.
 
 The Biotic database can contain duplicate or inconsistent records (e.g. the same haul entered
 twice, or length-sample totals exceeding the catch). Flag haul ids where the length sample exceeds
-the catch and drop them; write a report to `review/` for inspection.
+the catch and drop them; write a report to `ai/review/` for inspection.
 
 ```r
 dupe_ids <- stn |>

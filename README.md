@@ -9,7 +9,7 @@ index-template is a knowledge pack that turns a general coding agent (Claude Cod
 Tell your agent which species you want an index for, and it will:
 
 1. **Ask you a short, structured questionnaire** and confirm a plan.
-2. **Scaffold a new project folder** with a standard structure (`docs/`, `data/`, `R/`, `memory/`, `logs/`, `review/`).
+2. **Scaffold a new project folder** with a standard structure following academic-writing (`docs/`, `data/`, `R/`, `figures/`, `ai/`, `logs/`, `config/`).
 3. **Compile the data** from the IMR Biotic database (and, optionally, legacy SPD files), applying the filtering that makes catches quantitative.
 4. **Fit, validate, and report** an sdmTMB index, using helpers from [sdmTMBexperiments](https://github.com/DeepWaterIMR/sdmTMBexperiments) and maps from [ggOceanMaps](https://mikkovihtakari.github.io/ggOceanMaps/).
 
@@ -27,7 +27,7 @@ install https://github.com/DeepWaterIMR/BAIT
 
 This repo is **public and contains instructions only — never data**:
 
-- **No data and no private paths** are ever committed here. Real data and paths live only in the *project folder the agent generates for you*, where `data/`, `logs/`, and `review/` are git-ignored.
+- **No data and no private paths** are ever committed here. Real data and paths live only in the *project folder the agent generates for you*, where `data/`, `logs/`, and `ai/review/` are git-ignored.
 - The Biotic database lives **outside** any repo (BAIT default: `~/IMR_biotic_BES_database/`).
 - During setup, **turn off model training / data retention** for your agent once — BAIT walks you through it and records the onboarding.
 
@@ -81,3 +81,15 @@ Anderson, S.C., Ward, E.J., English, P.A., Barnett, L.A.K., & Thorson, J.T. (202
 Vihtakari, M., Aune, M., Assmann, K.M., Howell, D., Hallfredsson, E.H., & Ward, E.J. (2026). *Demersal distribution and fisheries independent trends of beaked and golden redfish in the Barents and Norwegian Seas.* ICES Journal of Marine Science, 83(2), fsag009. [doi:10.1093/icesjms/fsag009](https://doi.org/10.1093/icesjms/fsag009).
 
 
+
+## Academic-writing compatibility
+
+New projects use academic-writing's folder structure and HTML data-report conventions.
+Read [the shared contract](knowledge/academic-writing.md) and
+[the generated layout](knowledge/project-structure.md). Supply confirmed `AUTHORS` and
+`AFFILIATIONS` in the scaffold configuration. Existing species projects are not migrated
+automatically. The installed academic-writing skills govern all generated artifacts.
+
+Run `Rscript config/validate-scaffold.R` to check a synthetic scaffold without accessing data
+or fitting models. Add `--render` to render a small synthetic report using the same metadata,
+assets, citation helper, and code-fold settings.

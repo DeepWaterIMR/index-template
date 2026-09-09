@@ -4,8 +4,11 @@ subtitle: "Step 4 · index-template"
 format:
   html:
     toc: true
+    toc-title: "{{SPECIES_NAME}} — survey index"
     toc-depth: 3
     code-fold: true
+    code-summary: "Show code"
+    code-tools: true
     fig-format: jpeg
     fig-dpi: 160
     embed-resources: true
@@ -18,9 +21,25 @@ params:
   include_cv: false            # mesh cross-validation section
   include_survey: false        # survey-comparison section
 execute:
+  fig-width: 6.69
   warning: false
   message: false
+author: {{AUTHORS_YAML}}
+affiliations: {{AFFILIATIONS_YAML}}
+date: today
+date-format: "YYYY-MM-DD"
+published-title: "Version"
+lang: en-US
+bibliography:
+  - ../../assets/references.bib
+  - ../../assets/report-software.bib
+csl: ../../assets/ices_jms.csl
 ---
+
+# Purpose
+
+<!-- State the report question, intended reader, downstream use, and source-data version. -->
+
 
 <!-- Step 4: the final model report and the exported assessment index for {{SPECIES_NAME}}.
 Modelled on ref-assessment-index/docs/benchmark/beaked. Produces MULTIPLE indices (total
@@ -28,9 +47,13 @@ biomass, over-X-cm biomass, length-group abundances) and, via the *-section.qmd 
 optional mesh / barrier / retro / CV / survey-comparison analyses (each behind a toggle). Set
 bias_correct: true for the final run. Do NOT hard-wrap prose. -->
 
+# Data
+
+<!-- Describe input coverage, exclusions, units, and source versions with inline R. -->
+
 ```{r setup}
 knitr::opts_knit$set(root.dir = here::here())
-source(here::here("R", "00_setup.R"))
+source(here::here("R", "0_setup.R"))
 dt <- readRDS(file.path(out_dir, "compiled-data.rds")) |>
   dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>
   dplyr::mutate(month = as.integer(month))
@@ -40,10 +63,11 @@ mesh <- sdmTMB::make_mesh(dt, xy_cols = c("X", "Y"), cutoff = cfg$MESH_CUTOFF_KM
 has_multiple_gears <- dplyr::n_distinct(dt$geartype) > 1
 ```
 
+# Analysis
+
 ## Products
 
-This report builds the indices the assessment needs. Define the response for each product;
-`get_index_split()` computes many indices from one fit efficiently.
+This report builds the indices the assessment needs. Define the response for each product; `get_index_split()` computes many indices from one fit efficiently.
 
 - **Total biomass** — `spatiotemporal = "ar1"`, no year effect.
 - **Over-`r cfg$OVER_CM` cm biomass** — biomass of individuals above the threshold.
@@ -76,7 +100,9 @@ fit_total <- readRDS(file.path(out_dir, "model-fit-total.rds"))
 
 ## Indices
 
-```{r indices}
+```{r}
+#| label: fig-report-indices
+#| fig-cap: "Estimated annual total-biomass index. Shading spans the returned lower and upper limits."
 pred_total  <- predict(fit_total, newdata = grid, return_tmb_object = TRUE)
 index_total <- sdmTMB::get_index(pred_total, bias_correct = params$bias_correct,
                                  area = grid_cell_area_nmi2)
@@ -88,14 +114,20 @@ ggplot2::ggplot(index_total, ggplot2::aes(year, est)) +
   ggplot2::labs(x = "Year", y = "Total biomass index")
 ```
 
+<!-- Describe the supported finding and refer to @fig-report-indices. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
 ## Results
 
-```{r results}
+```{r}
+#| label: fig-report-results
+#| fig-cap: "Final-model diagnostics: fixed effects, annual prediction maps, spatiotemporal random fields, and residual quantiles."
 plot_fixed_effects(fit_total)
 plot_prediction_map(pred_total, crs = dt_crs, column = "est", type = "annual")
 plot_random_field(pred_total, crs = dt_crs, field = "epsilon")
 plot_residual_qq(fit_total)
 ```
+
+<!-- Describe the supported finding and refer to @fig-report-results. Confirm caption units, sample size, and interval definitions against the generated result. -->
 
 ## Export the assessment index
 
@@ -114,3 +146,48 @@ compute is guarded by the matching include_* toggle. -->
 {{< include retro-section.qmd >}}
 {{< include cross-validation-section.qmd >}}
 {{< include survey-comparison-section.qmd >}}
+
+
+# Results and recommendations
+
+<!-- Summarize supported findings using inline R. Identify provisional outputs, unresolved checks, and the values recommended for the next workflow step. Refer to every figure and table in a short interpretive sentence. -->
+
+# Software and reproducibility
+
+This report followed [index-template](https://github.com/DeepWaterIMR/index-template), with document structure and conventions from [academic-writing](https://github.com/DeepWaterIMR/academic-writing).
+
+```{r software-citations}
+#| results: asis
+source(here::here("R", "report_helpers.R"))
+# Add every additional package that influenced this report, including optional packages.
+report_software(
+  c("tidyverse", "ggplot2", "sf", "ggOceanMaps", "sdmTMB", "sdmTMBexperiments", "knitr"),
+  here::here("docs", "assets", "report-software.bib")
+)
+```
+
+<!-- Before release, replace this draft disclosure with the exact researcher-confirmed model names and roles. Append to existing model lists; never claim approval that has not occurred. -->
+AI-assisted drafting and analysis require researcher review. The responsible authors must confirm the AI models used and approve the final content.
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+# Appendix: analysis scripts {.appendix}
+
+<!-- Add one folded listing for each additional R script used by this report, in run order. Do not use placeholder paths or silently omit missing scripts. -->
+
+```{r setup-appendix, code = readLines(here::here("R", "0_setup.R")), eval = FALSE, echo = TRUE}
+#| lst-label: lst-setup-script
+#| lst-cap: "Complete shared package, configuration, and model setup."
+#| code-fold: true
+#| code-summary: "Show setup script"
+```
+
+```{r helpers-appendix, code = readLines(here::here("R", "report_helpers.R")), eval = FALSE, echo = TRUE}
+#| lst-label: lst-report-helpers
+#| lst-cap: "Complete software citation helper."
+#| code-fold: true
+#| code-summary: "Show report helpers"
+```

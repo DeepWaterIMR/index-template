@@ -21,6 +21,10 @@ index-template does **not** define its own privacy gate — it reuses BAIT's.
 2. If BAIT is installed and onboarding is recorded, **do not re-gate** — a short reminder that
    raw Biotic data stays local is enough. See BAIT's `biotic-privacy` skill.
 
+Before generating scientific reports, also ensure academic-writing is installed and its
+`academic-style`, `academic-conventions`, and `academic-data-report` skills are available.
+Use `academic-writing-install` when needed. See `knowledge/academic-writing.md`.
+
 ## Step 2 — Clone index-template to a sensible place
 
 Clone next to BAIT (read `bait_path` from `~/.bait/config.json` and use its parent), or another

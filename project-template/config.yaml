@@ -1,12 +1,19 @@
 # config.yaml — the single source of truth for this index project.
 # scaffold.R stamps the identity fields (SPECIES_*) into document titles/paths; every other
-# field is read at run time by R/00_setup.R and used by the documents. Edit here, not in the
+# field is read at run time by R/0_setup.R and used by the documents. Edit here, not in the
 # qmds.
 
 # --- Identity ---------------------------------------------------------------------------
 SPECIES_NAME:  "{{SPECIES_NAME}}"     # display name, e.g. "Beaked redfish"
 SPECIES_SLUG:  "{{SPECIES_SLUG}}"     # kebab-case slug for folders/files, e.g. "snabeluer"
 SPECIES_LATIN: "{{SPECIES_LATIN}}"    # binomial, e.g. "Sebastes mentella"
+
+# Human metadata uses academic-writing's AUTHORS/AFFILIATIONS schema.
+# Supply accountable human names and matching affiliation IDs before scaffolding.
+AUTHORS: []
+AFFILIATIONS: []
+BASE_SIZE: 12
+FIGURES_DIR: "figures"
 
 # --- Data selection ---------------------------------------------------------------------
 FILTER_SP:                            # Norwegian commonname value(s) (confirm via BAIT taxaindex)
@@ -59,5 +66,5 @@ SELECTED_INDEX: "Over 30 cm biomass"  # which product feeds the assessment
 
 # --- Paths (relative to project root) ---------------------------------------------------
 OUTPUT_DIR: "data/output"
-REVIEW_DIR: "review"
+REVIEW_DIR: "ai/review"
 SOURCE_DIR: "data/source"

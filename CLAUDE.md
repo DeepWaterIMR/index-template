@@ -23,7 +23,7 @@ section of [`AGENTS.md`](AGENTS.md).
 ## Claude-specific notes
 
 - **Project memory, not local memory.** When working *inside a generated project*, use that
-  project's `memory/` folder as your project memory (read `memory/MEMORY.md` first, write new
+  project's `ai/memory/` folder as your project memory (read `ai/memory/MEMORY.md` first, write new
   memory files there). Do **not** use `~/.claude/projects/.../memory/` for project facts —
   that folder is only for user-level preferences/identity.
 - **Skills** — when the user types `/index-...` or asks to build/validate/report an index,
@@ -35,3 +35,12 @@ section of [`AGENTS.md`](AGENTS.md).
   chunks and fix issues before starting a render. See `knowledge/rendering.md`.
 
 For everything else, see [`AGENTS.md`](AGENTS.md).
+
+## Academic-writing contract
+
+For every generated project artifact, read the installed `academic-style`,
+`academic-conventions`, and `academic-data-report` skills. index-template supplies the
+scientific workflow; academic-writing supplies structure, style, and publishing conventions.
+Follow index-template's `knowledge/academic-writing.md`. The workflow QMDs are HTML data
+reports under `docs/data-report/`; shared assets belong in `docs/assets/`, project memory in
+`ai/memory/`, tests in `ai/tests/`, and reviews in `ai/review/`.

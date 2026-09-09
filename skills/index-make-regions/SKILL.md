@@ -7,6 +7,10 @@ description: Create, modify, validate, order, save, or map named spatial study-r
 
 Create a valid, named polygon partition for analysis. Read `knowledge/regions.md` in full before changing geometry.
 
+Before producing project files, read `knowledge/academic-writing.md` and the installed
+`academic-style`, `academic-conventions`, and `academic-data-report` skills. Apply their
+conventions to every generated artifact; retain index-template's scientific workflow.
+
 ## Confirm the specification first
 
 Inspect candidate input files and the project configuration read-only, then ask the user for the missing decisions before any geometry or file write. Offer concise, reasonable choices for:

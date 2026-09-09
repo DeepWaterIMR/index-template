@@ -174,5 +174,5 @@ See `rendering.md` for the render-side toggles and the screen-session discipline
 
 A short "Decision" section stating the chosen formula, family, spatiotemporal structure, mesh
 cutoff and barrier choice; the evidence (which table, which metric, by how much); and — where
-the choice was not the table's winner — why. Record it in `memory/` as a decision. That
+the choice was not the table's winner — why. Record it in `ai/memory/` as a decision. That
 paragraph is what a reviewer reads.

@@ -1,0 +1,213 @@
+---
+title: "{{SPECIES_NAME}} — first sdmTMB model"
+subtitle: "Step 2 · index-template"
+format:
+  html:
+    toc: true
+    toc-title: "{{SPECIES_NAME}} — first sdmTMB model"
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true
+    fig-format: jpeg
+    fig-dpi: 160
+    embed-resources: true
+params:
+  refit_model: true      # FALSE → load the fit from data/output instead of refitting
+  recompute_grid: true   # FALSE → load the prediction grid
+  bias_correct: false    # TRUE only for final index runs (slow)
+execute:
+  fig-width: 6.69
+  warning: false
+  message: false
+author: {{AUTHORS_YAML}}
+affiliations: {{AFFILIATIONS_YAML}}
+date: today
+date-format: "YYYY-MM-DD"
+published-title: "Version"
+lang: en-US
+bibliography:
+  - ../../assets/references.bib
+  - ../../assets/fit-software.bib
+csl: ../../assets/ices_jms.csl
+---
+
+# Purpose
+
+<!-- State the report question, intended reader, downstream use, and source-data version. -->
+
+
+<!-- Step 2: the first FEASIBLE model — total {{SPECIES_NAME}} biomass (or abundance), NO
+length groups, NO temperature — to confirm the method works before adding complexity.
+Improve this document directly as the routine matures — see knowledge/workflow.md if you need
+background on the original method. Read index-template's sdmtmb.md and sdmtmbexperiments.md.
+Do NOT hard-wrap prose. -->
+
+# Data
+
+<!-- Describe input coverage, exclusions, units, and source versions with inline R. -->
+
+```{r setup}
+knitr::opts_knit$set(root.dir = here::here())
+source(here::here("R", "0_setup.R"))
+dt <- readRDS(file.path(out_dir, "compiled-data.rds"))
+```
+
+# Analysis
+
+## Prepare
+
+Response and projected coordinates (km). Keep true zeros.
+
+If Step 1 acquired a broader reporting polygon and added a `region` field, filter that field to the model-domain label here before constructing the mesh. Do not remove the broader stations during survey qualification or data-overview compilation.
+
+```{r prepare, eval=params$refit_model}
+dt <- dt |>
+  dplyr::rename(lon = longitudestart, lat = latitudestart, year = startyear) |>
+  dplyr::mutate(value = .data[[response_col]], month = as.integer(month)) |>
+  dplyr::filter(!is.na(value))
+
+dt <- sdmTMB::add_utm_columns(dt, ll_names = c("lon", "lat"), utm_crs = dt_crs)  # X, Y in km
+```
+
+## Mesh
+
+```{r, eval=params$refit_model}
+#| label: fig-fit-mesh
+#| fig-cap: "Model mesh and sampling locations in the configured projection."
+mesh <- sdmTMB::make_mesh(dt, xy_cols = c("X", "Y"), cutoff = cfg$MESH_CUTOFF_KM)
+if (isTRUE(cfg$BARRIER)) {
+  ensure_packages("sdmTMBextra")   # installed on demand; see R/0_setup.R
+  land <- ggOceanMaps::basemap_data(data = dt, crs = dt_crs)$shapefiles$land
+  mesh <- sdmTMBextra::add_barrier_mesh(mesh, land, proj_scaling = 1000)
+}
+plot_mesh(mesh, crs = dt_crs, data = dt)
+```
+
+<!-- Describe the supported finding and refer to @fig-fit-mesh. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+## Fit
+
+Default formula `value ~ 0 + geartype + s(month) + s(depth)` (temperature off by default). `geartype` stays in when >1 major gear type is present, or whenever a single set gear width is used.
+
+```{r fit, eval=params$refit_model}
+has_multiple_gears <- dplyr::n_distinct(dt$geartype) > 1
+# `data = dt` sizes the smooth bases to what the survey actually sampled — a series covering
+# three months cannot support the default `s(month)` basis and fails with an opaque mgcv error.
+form <- build_formula(cfg, has_multiple_gears, data = dt)
+form
+
+# Years the survey skipped: an `ar1`/`rw` field assumes evenly spaced steps, and a gap makes
+# sdmTMB warn about irregular time spacing and can leave the fit grinding for a very long time.
+extra_time <- setdiff(seq(min(dt$year), max(dt$year)), unique(dt$year))
+
+fit <- sdmTMB::sdmTMB(
+  form, data = dt, mesh = mesh,
+  family = model_family,
+  spatial = "on", spatiotemporal = cfg$SPATIOTEMPORAL, time = "year",
+  extra_time = if (length(extra_time)) extra_time else NULL,
+  control = sdmTMB::sdmTMBcontrol(newton_loops = 2)
+)
+saveRDS(fit, file.path(out_dir, "model-fit-total.rds"))
+```
+
+```{r load-fit, eval=!params$refit_model}
+fit <- readRDS(file.path(out_dir, "model-fit-total.rds"))
+```
+
+```{r sanity}
+sdmTMB::sanity(fit)
+```
+
+If `sanity()` flags problems (large gradients, non-PD Hessian, range > domain), simplify — coarser mesh, drop a smooth, or change the spatiotemporal structure — rather than pressing on.
+
+## Prediction grid
+
+```{r grid, eval=params$recompute_grid}
+region <- make_survey_prediction_region(dt, crs = dt_crs)
+grid   <- make_prediction_grid(region, resolution = grid_side_size, max_depth = cfg$MAX_DEPTH)
+grid   <- tidyr::crossing(as.data.frame(grid), year = sort(unique(dt$year)))
+grid$geartype <- levels(factor(dt$geartype))[1]   # reference gear
+grid$month    <- 8L                               # reference month
+saveRDS(grid, file.path(out_dir, "prediction-grid.rds"))
+```
+
+```{r load-grid, eval=!params$recompute_grid}
+grid <- readRDS(file.path(out_dir, "prediction-grid.rds"))
+```
+
+## Predict and index
+
+```{r}
+#| label: fig-fit-index
+#| fig-cap: "Estimated annual index. The line represents the estimate and the shaded interval spans the returned lower and upper limits."
+pred  <- predict(fit, newdata = grid, return_tmb_object = TRUE)
+index <- sdmTMB::get_index(pred, bias_correct = params$bias_correct, area = grid_cell_area_nmi2)
+saveRDS(index, file.path(out_dir, "index-total.rds"))
+
+ggplot2::ggplot(index, ggplot2::aes(year, est)) +
+  ggplot2::geom_ribbon(ggplot2::aes(ymin = lwr, ymax = upr), alpha = 0.3) +
+  ggplot2::geom_line() +
+  ggplot2::labs(x = "Year", y = "Index")
+```
+
+<!-- Describe the supported finding and refer to @fig-fit-index. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+## Diagnostics
+
+```{r}
+#| label: fig-fit-diagnostics
+#| fig-cap: "Diagnostics of the first model: residual quantiles, mean predictions, the spatial random field, and fixed effects."
+plot_residual_qq(fit)
+plot_prediction_map(pred, crs = dt_crs, column = "est", type = "mean")
+plot_random_field(pred, crs = dt_crs, field = "omega")
+plot_fixed_effects(fit)
+```
+
+<!-- Describe the supported finding and refer to @fig-fit-diagnostics. Confirm caption units, sample size, and interval definitions against the generated result. -->
+
+If the simple model is sane and the index is plausible, proceed to Step 3 (`index-validate-model`). Record the mesh cutoff, formula, and family in `ai/memory/`.
+
+
+# Results and recommendations
+
+<!-- Summarize supported findings using inline R. Identify provisional outputs, unresolved checks, and the values recommended for the next workflow step. Refer to every figure and table in a short interpretive sentence. -->
+
+# Software and reproducibility
+
+This report followed [index-template](https://github.com/DeepWaterIMR/index-template), with document structure and conventions from [academic-writing](https://github.com/DeepWaterIMR/academic-writing).
+
+```{r software-citations}
+#| results: asis
+source(here::here("R", "report_helpers.R"))
+# Add every additional package that influenced this report, including optional packages.
+report_software(
+  c("tidyverse", "ggplot2", "sf", "ggOceanMaps", "sdmTMB", "sdmTMBexperiments", "knitr"),
+  here::here("docs", "assets", "fit-software.bib")
+)
+```
+
+<!-- Before release, replace this draft disclosure with the exact researcher-confirmed model names and roles. Append to existing model lists; never claim approval that has not occurred. -->
+AI-assisted drafting and analysis require researcher review. The responsible authors must confirm the AI models used and approve the final content.
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+# Appendix: analysis scripts {.appendix}
+
+<!-- Add one folded listing for each additional R script used by this report, in run order. Do not use placeholder paths or silently omit missing scripts. -->
+
+```{r setup-appendix, code = readLines(here::here("R", "0_setup.R")), eval = FALSE, echo = TRUE}
+#| lst-label: lst-setup-script
+#| lst-cap: "Complete shared package, configuration, and model setup."
+#| code-fold: true
+#| code-summary: "Show setup script"
+```
+
+```{r helpers-appendix, code = readLines(here::here("R", "report_helpers.R")), eval = FALSE, echo = TRUE}
+#| lst-label: lst-report-helpers
+#| lst-cap: "Complete software citation helper."
+#| code-fold: true
+#| code-summary: "Show report helpers"
+```

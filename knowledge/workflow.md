@@ -11,11 +11,11 @@ IMR-internal) repos:
 
 | index-template document | Background material, if you need to consult it (Vihtakari et al. 2026) |
 |---|---|
-| `docs/data/*.qmd` (compile) | `ref-index-paper/docs/data/{Redfish bottom trawl, BioticExplorer_database, Compile_all_data}.Rmd` |
-| `docs/data/<species>-<region>-data-report.qmd` | `ref-index-paper/docs/SI files/SI-Text-1-data.qmd` |
-| `docs/exploration/fit.qmd` | `ref-index-paper/docs/SI files/SI-Text-2-sdmTMB.qmd` |
-| `docs/exploration/validate.qmd` | `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd` (staged selection, status-coded tables, index per candidate) |
-| `docs/<species>/report.qmd` (+ `*-section.qmd`) | `ref-assessment-index/docs/benchmark/beaked/*` |
+| `docs/data-report/survey-selection/compile-data.qmd` | `ref-index-paper/docs/data/{Redfish bottom trawl, BioticExplorer_database, Compile_all_data}.Rmd` |
+| `docs/data-report/data-overview/<species>-<region>-data-report.qmd` | `ref-index-paper/docs/SI files/SI-Text-1-data.qmd` |
+| `docs/data-report/fit/fit.qmd` | `ref-index-paper/docs/SI files/SI-Text-2-sdmTMB.qmd` |
+| `docs/data-report/validation/validate.qmd` | `ref-index-paper/docs/SI files/SI-Text-3-model-selection.qmd` (staged selection, status-coded tables, index per candidate) |
+| `docs/data-report/<species>/report.qmd` (+ `*-section.qmd`) | `ref-assessment-index/docs/benchmark/beaked/*` |
 
 As the routine is improved, index-template's documents will diverge from this original
 material — that's expected. Use the table to find *background*, not to decide what the
@@ -25,7 +25,7 @@ truth for what each step actually does.**
 ## Step 0 — Scaffold (skill: `index-new-project`)
 
 Run the **questionnaire**, confirm a plan (plan mode), then copy `project-template/` and stamp
-`config.yaml` with `scaffold.R`. Seed the project `memory/` with the answers. Output: an empty
+`config.yaml` with `scaffold.R`. Seed the project `ai/memory/` with the answers. Output: an empty
 but structured project ready for step 1. See `project-structure.md`.
 
 ## Step 1 — Compile & report the data (skill: `index-compile-data`)
@@ -33,7 +33,7 @@ but structured project ready for step 1. See `project-structure.md`.
 **Needs a locally installed BES database and an IMR intranet connection.** Use BAIT for access
 (`biotic-server-setup`, `biotic-connect`, `biotic-query`).
 
-1. Adapt the `docs/data/` compilation documents for the species (`filter_sp`). They read
+1. Adapt the `docs/data-report/survey-selection/` compilation document for the species (`filter_sp`). They read
    station and individual data from the Biotic database (via BES) and — for northern/offshore
    species — optionally from legacy **SPD** files.
 2. Apply the **critical filtering** (`data-filtering.md`): the `gearcondition`,
@@ -46,7 +46,7 @@ but structured project ready for step 1. See `project-structure.md`.
 
 **Duplicates warning:** the Biotic database can contain duplicate records, and data are still
 being added to Biotic (making SPD files gradually obsolete). Detect duplicates and write a
-report to `review/`. For **southern or coastal** species, SPD files add little — suggest using
+report to `ai/review/`. For **southern or coastal** species, SPD files add little — suggest using
 BES only.
 
 ## Step 2 — Fit the first feasible model (skill: `index-fit-model`)

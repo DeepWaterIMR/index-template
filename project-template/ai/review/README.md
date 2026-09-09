@@ -1,4 +1,4 @@
-# review/
+# ai/review/
 
 **AI reviews and temporary artifacts** — **git-ignored**. Nothing here is committed.
 

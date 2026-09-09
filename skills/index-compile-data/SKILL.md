@@ -19,9 +19,13 @@ BAIT is the agent-side guidance and connection workflow; it is not a separate da
 should not be described as one in the data report. Do not copy machine-specific database paths
 into the template or generated project.
 
+Before producing project files, read `knowledge/academic-writing.md` and the installed
+`academic-style`, `academic-conventions`, and `academic-data-report` skills. Apply their
+conventions to every generated artifact; retain index-template's scientific workflow.
+
 ## Work
 
-1. **Adapt the survey-selection document** `docs/data/compile-data.qmd` for this species and
+1. **Adapt the survey-selection document** `docs/data-report/survey-selection/compile-data.qmd` for this species and
    region: set
    `filter_sp` and the survey list from `config.yaml`. Read `stnall` (stations) and `indall`
    (individual/length) from the Biotic database via BAIT.
@@ -52,7 +56,7 @@ into the template or generated project.
 4. **Keep true zeros** — build the retained-station roster independently, aggregate the target
    catch to the same unit, and left-join it so verified absences are preserved.
 5. **Remove duplicates** — flag haul ids where length sample exceeds catch; drop them; write the
-   duplicate report to `review/`.
+   duplicate report to `ai/review/`.
 6. **Optional SPD files** — only if `USE_SPD: true` (northern/offshore species). Drop SPD
    years/series already in Biotic; tag `source`. For southern/coastal species, skip SPD.
 7. **Swept-area density** — apply the gear-width policy from `config.yaml` (normally a common
@@ -70,7 +74,7 @@ into the template or generated project.
 
 ## Data report
 
-Generate `docs/data/<slug>-<region>-data-report.qmd`: station maps (ggOceanMaps), station counts
+Generate `docs/data-report/data-overview/<slug>-<region>-data-report.qmd`: station maps (ggOceanMaps), station counts
 by year/depth, response-variable distributions, trawl-parameter summaries (distance, duration,
 door spread, wire ratio), and the length–weight / length-group allocation. Use
 `fig-format: jpeg` for rasters; keep the HTML small. (For background material, see the lookup

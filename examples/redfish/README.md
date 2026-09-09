@@ -32,3 +32,5 @@ check against, see:
   [doi:10.1093/icesjms/fsag009](https://doi.org/10.1093/icesjms/fsag009).
 
 Nothing here contains data or private paths.
+
+Fill `AUTHORS` and `AFFILIATIONS` with confirmed human metadata before scaffolding.

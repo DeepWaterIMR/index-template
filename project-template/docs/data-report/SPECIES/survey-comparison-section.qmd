@@ -2,7 +2,9 @@
 filter to one cruiseseries, build a survey-specific mesh and grid, compute the index, and
 compare with compare_surveys(). -->
 
-```{r survey-section, eval=params$include_survey}
+```{r, eval=params$include_survey}
+#| label: fig-survey-comparison-section-survey-section
+#| fig-cap: "Survey-specific and compiled indices shown as time series and pairwise comparisons."
 #| output: asis
 cat("## Survey comparison\n\n")
 fit_total   <- readRDS(file.path(out_dir, "model-fit-total.rds"))
@@ -20,3 +22,5 @@ sc <- compare_surveys(
 print(plot(sc, type = "index"))
 print(plot(sc, type = "scatter"))
 ```
+
+<!-- Describe the supported finding and refer to @fig-survey-comparison-section-survey-section. Confirm caption units, sample size, and interval definitions against the generated result. -->
