@@ -14,8 +14,10 @@ a prediction grid to get a total. The building blocks:
   `rho_abundance` in n·nmi⁻²). A valid alternative is raw catch weight/count with a log swept-area
   **offset** supplied through `sdmTMB(..., offset = ...)`; state the choice in the data report.
   In the installed sdmTMB API, an offset in a delta family applies to the positive component only.
-  If sampled area should also affect occurrence probability, include it explicitly in that component
-  or compare a Tweedie model rather than implying that the offset alone standardizes zeros.
+  If sampled area should also affect occurrence probability, use a Poisson-link delta family
+  (`delta_lognormal(type = "poisson-link")`), in which the offset enters both components; see
+  `model-selection.md` for why it is preferred when it fits and converges, and for the Jacobian
+  correction needed to compare density-response and offset candidates.
 - **Fixed effects** — `~ 0 + geartype + s(month) + s(depth)`. The `0 +` drops the global
   intercept so each `geartype` level is estimated directly; `s()` are penalised smooths
   (mgcv-style) for seasonal and depth effects. **No temperature term by default.**
@@ -23,7 +25,9 @@ a prediction grid to get a total. The building blocks:
 - **Spatiotemporal field** `epsilon_st` — `spatiotemporal = "ar1"` (also `"iid"`, `"rw"`,
   `"off"`), with `time = "year"`. AR1 shares information across years; IID does not.
 - **Family** — `delta_lognormal()` (a hurdle: binomial presence × lognormal positive
-  density). Alternatives: `delta_gamma()`, `tweedie()`.
+  density). Alternatives: `delta_gamma()`, `tweedie()`, and the Poisson-link variants
+  `delta_lognormal(type = "poisson-link")` / `delta_gamma(type = "poisson-link")` with a
+  swept-area offset.
 
 ## Coordinates — kilometres
 

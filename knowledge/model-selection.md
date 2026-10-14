@@ -60,20 +60,202 @@ The rules below exist to stop that, and each is enforced or reported by the help
 ## The stages
 
 Each stage is the same operation with a different thing varied, so all of them use
-`sdmTMB_selection()` with a different `candidates` list. Do them in this order; each stage
-fixes its winner before the next varies something else.
+`sdmTMB_selection()` with a different `candidates` list. Every comparison is conditional on the
+settings held fixed while it runs, so the order matters: start from the first feasible model of
+Step 2, settle each setting in turn, and fix its winner before the next stage varies something
+else.
 
 | Stage | Vary | Typical candidates |
 |---|---|---|
-| 1. Component ranking | `formula` (one term at a time), `spatial`, `spatiotemporal` | `~ s(depth)`, `~ fyear`, `~ s(month)`, `~ geartype`, `~ 1` with fields on, `~ 1` with `spatial = "off"` |
-| 2. Fixed effects | `formula` (drop one term from the full model) | Full model, no depth, no month, no gear, no year, null |
-| 3. Family | `family` | `delta_lognormal()`, `delta_gamma()`, `tweedie()` |
-| 4. Spatiotemporal structure | `spatiotemporal` | `iid`, `ar1`, `rw`, `off` |
-| 5. Mesh resolution | `cutoff` | 40, 60, 80, 100 km — or `compare_meshes()` / `sdmTMB_mesh_cv()` |
+| 1. Mesh resolution | `cutoff` | A ladder from the Step 2 cutoff down to the finest the machine can afford, e.g. 100, 75, 50, 35, 25 km |
+| 2. Random-field structure | `spatial` (per component), `spatiotemporal` | Spatial on/off in each delta component × `ar1`/`rw`/`iid` |
+| 3. Spatial correlation geometry | barrier mesh, `anisotropy` | Isotropic, anisotropic, barrier (sensitivity, not ranking) |
+| 4. Fixed effects | `formula` (drop one term, add one) | Full model, each term dropped in turn, candidate additions such as `s(month)` |
+| 5. Family re-check | `family` | The Step 3a winner against its runners-up, now with the selected structure |
+| 6. Prediction grid | grid cell size | Not a model choice — see *Grid resolution* below |
 
-Stage 1 tells you which single components carry information at all; stage 2 tells you which
-survive together. Stage 4 has an assessment constraint, not just a statistical one — see the
-section below.
+**Why the mesh comes first.** The mesh fixes the resolution at which every random field can
+express spatial structure, and fit time and memory scale with its vertex count, so every later
+stage is both conditioned on it and paid for by it. Settling it first on the Step 2
+specification keeps the later ladders affordable. If a later stage changes the random-field
+structure substantially (spatial fields reinstated, say), re-check the mesh once at the end.
+
+**Why the random fields come before the formula.** Whether a spatial field is estimable, and
+whether an AR1 field has absorbed the persistent spatial pattern (correlation at or near 1), are
+properties of the field structure on a given mesh. A fixed effect such as `s(depth)` competes
+with the spatial field for the same signal, so ranking fixed effects under a field structure
+that will later change ranks them against the wrong alternative.
+
+Earlier versions of this file ranked components and fixed effects first and the mesh last. That
+order is still valid when the Step 2 mesh is already close to final. When the Step 2 mesh is a
+deliberately coarse smoke-test mesh it is not, because the mesh decision would re-open every
+comparison made on it.
+
+Stage 2 has an assessment constraint, not just a statistical one — see the section below.
+
+## Mesh resolution: the smallest mesh that is not worse
+
+A finer mesh is not a better model by default. It is a larger one: more random-field vertices
+per time step, longer fits, more memory, and more chances for a variance parameter to collapse.
+Select the cutoff by the rule **the coarsest mesh whose cross-validated predictive skill is not
+distinguishable from the best**:
+
+1. Fit the ladder and cross-validate it with the **same fold assignment** for every cutoff, so
+   the per-observation scores are paired.
+2. For each cutoff compute the paired difference in pointwise held-out log-likelihood against
+   the best cutoff, $d_i$, and the standard error of the summed difference,
+   $\mathrm{SE} = \sqrt{n}\,\mathrm{sd}(d_i)$ (the standard error `loo::loo_compare()` uses for
+   ELPD differences).
+3. Choose the coarsest cutoff whose ELPD is within two standard errors of the best.
+
+Report fit time, vertex count and fitted-object size beside the scores, and look at the index
+each cutoff produces. A cutoff that changes the trend, rather than the uncertainty, is not a
+computational setting and must be discussed. Mesh refinement buys skill unevenly — a large gain
+from a very coarse mesh, then a plateau — so make the ladder dense enough near the plateau to
+find where it starts.
+
+## Spatial correlation geometry: barrier and anisotropy
+
+Coastlines and fjords make Euclidean correlation wrong near land. A barrier mesh
+(`sdmTMBextra::add_barrier_mesh()`) stops correlation crossing land; an anisotropic field
+(`anisotropy = TRUE`) lets correlation run further along the coast than across it. Both matter
+most where a narrow, coast-parallel distribution meets a ragged coastline, and least where the
+area they influence (fjords, sounds) is small compared with the open shelf the index integrates.
+
+Treat both as **sensitivity checks on the selected mesh**, not as ranking candidates: fit the
+selected specification with and without each, and compare the indices and the per-cell
+predictions with `compare_models()`. Adopt one only if it changes the index or is clearly
+preferred on the selection metric. sdmTMB does not combine a barrier mesh with anisotropy, so
+the comparison is three models (isotropic, anisotropic, barrier), not a 2 × 2.
+
+## Fixed effects: design terms need care
+
+- **Survey and gear are usually not crossable.** Most survey series fish one standard gear, so
+  `cruiseseries * geartype` is not estimable, and even the additive model identifies the gear
+  effect only from the series that used both gears. Check the series × gear cross-table in the
+  data report before fitting anything. A series with a handful of hauls of the other gear is
+  more likely a recording error than a design feature, and must be flagged there.
+- **Drop a design term the data do not need.** If removing the series term does not worsen the
+  selection metric, drop it: one factor fewer is one reference level fewer to defend.
+- **Choose the prediction reference explicitly** (series, gear, month). It sets the index level,
+  not its shape, but it must be a level with good coverage in the data.
+- **Depth limits.** Limit the prediction grid at a depth comfortably beyond the deepest positive
+  catch. If the depth smooth falls to negligible density before that limit, the limit does not
+  affect the index; check this rather than assume it.
+- **Missing years in an AR1 or RW series.** A year with no survey breaks the time steps. Pass
+  the gap to `sdmTMB(extra_time = ...)` so the process stays evenly spaced; sdmTMB prints the
+  vector it wants.
+
+## Simpler models converge more often
+
+Every index product (total, length groups, the assessment index) must converge with the same
+structure. A specification that only just converges for total biomass will often fail for a
+sparser length group. When two candidates are not distinguishable on the selection metric,
+prefer the simpler one, and confirm that the chosen structure converges for every product before
+calling the selection final.
+
+## Selection criteria versus diagnostics of the final model
+
+Select on predictive skill (cross-validated ELPD, with AIC as a first filter), convergence and
+`sanity()`, and the effect on the index. The following are **diagnostics of the final model**,
+not criteria for choosing between candidates:
+
+- **Simulation-based residuals** (DHARMa). Slow to compute and, across candidates of one family,
+  usually alike. Compute them for the final model only, behind a toggle, and cache the residual
+  object so a re-render does not recompute it.
+- **Retrospective patterns** (`sdmTMB_retro()`, Mohn's rho). A specification must not be tuned to
+  make the retrospective look good.
+- **Confidence-interval width.** Narrower intervals look like a better model, but the interval is
+  only as good as the model behind it, and for these models it is not always trustworthy. Use it
+  to describe the final index, not to choose it.
+- **Agreement with an existing assessment index.** A plausibility check on shape; reproducing the
+  old index is not the goal.
+
+## Comparing candidates fitted to different response scales
+
+AIC and held-out log-likelihoods are only comparable between models of the **same response
+variable** (comparability rule 2). A survey-index project often wants to compare across exactly
+that boundary: a density response $\rho_i = B_i / A_i$ (catch per swept area) against raw catch
+$B_i$ with a $\log A_i$ offset. As sdmTMB reports them the two are on different likelihood
+scales, but the change-of-variable (Jacobian) correction puts them on one. Since
+$\mathrm{d}B / \mathrm{d}\rho = A$,
+
+$$\log f_\rho(\rho_i) = \log f_B(B_i) + \log A_i ,$$
+
+and the correction applies **only to observations with a positive catch**. A zero contributes a
+probability mass, $P(B_i = 0) = P(\rho_i = 0)$, which does not change under the transform. So, for
+delta and Tweedie families alike,
+
+$$\ell_\rho = \ell_B + \sum_{i:\, B_i > 0} \log A_i .$$
+
+Apply it to the in-sample log-likelihood (and hence AIC) and, per held-out observation, to the
+cross-validated log predictive density:
+
+```r
+# Add to a catch-scale log-likelihood to express it on the density scale.
+jacobian_to_density <- function(log_area, positive) sum(log_area[positive])
+# Per-observation version for cross-validated pointwise log-likelihoods.
+jacobian_obs <- function(log_area, positive) ifelse(positive, log_area, 0)
+```
+
+Report raw and corrected columns side by side so the size of the artefact is visible. Uncorrected,
+the catch-scale model gains $-2\sum \log A_i$ AIC units for nothing; with swept areas of a few
+hundredths of a square nautical mile and a thousand positive hauls that is thousands of units,
+enough to swamp any real difference.
+
+Two checks make the correction trustworthy:
+
+1. A standard delta-lognormal or delta-gamma fitted to $\rho$ without an offset and to $B$ with a
+   $\log A$ offset is **the same model**: identical estimates, identical index, log-likelihoods
+   differing by exactly $\sum_{B_i > 0} \log A_i$. Verify this once on the project's data.
+2. Where all candidates can be fitted to the **same** response, do that instead. With an offset,
+   a standard delta model on $B$ is the density model, so a family comparison fitted entirely on
+   the catch scale needs no correction at all.
+
+`sdmTMB_selection()` does not apply this correction; compute it from the table and the stored
+fits.
+
+## Prefer a Poisson-link delta family when swept area varies
+
+In a standard delta family the sdmTMB `offset` enters the **positive component only**, so the
+swept area cannot affect the probability of a zero catch: a short and a long haul at the same
+place have the same modelled encounter probability. A Poisson-link delta model
+(`delta_lognormal(type = "poisson-link")`, `delta_gamma(type = "poisson-link")`; Thorson 2018)
+removes that limitation. Its first linear predictor is log group density, the offset enters it as
+$n_i = \exp(\log A_i + \eta_{1i})$, the encounter probability is $p_i = 1 - \exp(-n_i)$, and the
+expected catch is $\exp(\log A_i + \eta_{1i} + \eta_{2i})$, so effort drives both components. It
+takes continuous catch weight; counts are not needed.
+
+**Prefer the Poisson-link family when it fits at least as well as the alternatives** (corrected
+cross-validated ELPD, then corrected AIC) **and converges with the structure every product
+needs.** The reason is structural, not only statistical: it is the only delta parameterisation in
+which the effort model is coherent for the zeros. Its extra structure makes convergence the
+binding constraint, so it is not preferred if it fails `sanity()` where a standard delta passes.
+
+Practical notes:
+
+- **Predict at `offset = 0`** (one unit of swept area) so the prediction is a density and
+  `get_index(area =)` scales it once. The encounter/positive split reported at that point is not
+  interpretable — one square nautical mile is tens of times a typical haul, so $p$ saturates —
+  only the product is.
+- **The random-field structure may need to change with the family.** Under a Poisson-link the
+  components mean different things (log group density and weight per group), and a spatial field
+  that was estimable in one component of a standard delta model may collapse in the other. Re-run
+  the random-field stage after changing family rather than carrying the old structure across.
+- When combining delta components in prediction code, use `est1 + est2` for the Poisson link
+  and `plogis(est1) * exp(est2)` for a logit first component. `plogis()` on a Poisson-link
+  `est1` gives a plausible-looking but meaningless map.
+
+## Grid resolution
+
+The prediction grid does not change the fit, but it changes the index (through how well the cells
+follow the coastline and the depth limit) and it dominates the cost of prediction: the predicted
+object grows with cells × years, and `get_index()` with bias correction is the step that runs out
+of memory. Choose the **coarsest grid whose index is indistinguishable from the finer ones**:
+predict the selected model on a ladder of cell sizes, compare the indices and the total grid area,
+and report prediction time and object size beside them. A grid much finer than the mesh can
+resolve adds cells, not information; a grid much coarser than the mesh cutoff starts to
+misrepresent the domain boundary.
 
 **Every stage gets three outputs**: the table, `plot(sel)` (the status-coded ranking), and
 `plot(sel, type = "index", newdata = grid)`. The third is the one that matters most and is the

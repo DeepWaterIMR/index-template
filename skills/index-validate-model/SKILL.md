@@ -19,25 +19,28 @@ conventions to every generated artifact; retain index-template's scientific work
 
 ## Work in `docs/data-report/validation/validate.qmd`
 
-The document already has the five stages wired up, each with its own compute toggle and its own
-cache prefix. Adapt the candidate lists to the species and config; do not restructure it
-without reason.
+Each stage has its own compute toggle and its own cache prefix. Adapt the candidate lists to
+the species and config. The order and its reasons are in `knowledge/model-selection.md`; in
+short, start from the Step 2 model and settle the most expensive, most conditioning setting
+first:
 
-1. **Component ranking** — what each single term is worth on its own (`s(depth)`, `s(month)`,
-   `fyear`, `geartype`, optionally `s(temperature)`), plus fields-only, no-spatial and
-   no-spatiotemporal rows.
-2. **Fixed effects** — the full model, each term dropped in turn, and the null.
-3. **Cross-validation of a shortlist** — the top `cv_top_n` by AIC only. CV costs `k` fits per
-   candidate; cross-validating the whole ladder costs days and changes nothing.
-4. **Family** — `delta_lognormal()`, `delta_gamma()`, `tweedie()`.
-5. **Spatiotemporal structure** — `iid`, `ar1`, `rw`, `off`, and `iid` + `fyear`. Remember the
-   assessment use-case: total/length indices → `ar1` with no year effect; the
+1. **Mesh resolution** — a cutoff ladder; choose the **coarsest mesh within two paired standard
+   errors of the best cross-validated ELPD**, reporting fit time and object size beside it.
+2. **Random-field structure** — spatial field on/off per component, `ar1`/`rw`/`iid`. Remember
+   the assessment use-case: total/length indices → `ar1` with no year effect; the
    assessment-selected index → often `iid` + `year` as a fixed effect, to avoid temporal
    smoothing. Confirm with the user which the assessment consumes.
-6. **Mesh resolution** — a cutoff ladder through `sdmTMB_selection()`, plus
-   `sdmTMB_mesh_cv(fit, mesh_cutoffs = c(...), k = ...)` (needs `blockCV`) and
-   `compare_meshes()`.
-7. **Retrospective** — `sdmTMB_retro(fit, newdata = grid, nyears = 5)` and `mohns_rho()`.
+3. **Barrier and anisotropy** — sensitivity of the index to each, on the selected mesh.
+4. **Fixed effects** — the full model, each term dropped in turn, candidate additions. Survey ×
+   gear is usually not estimable; flag misrecorded gear in the data report.
+5. **Family re-check** — the Step 3a winner against its runners-up with the selected structure.
+   Prefer a Poisson-link delta family with a swept-area offset when it fits at least as well
+   and converges. Candidates on different response scales need the Jacobian correction.
+6. **Grid resolution** — after the fit: the coarsest grid whose index matches the finer ones.
+
+AIC ranks every ladder; cross-validate a shortlist only. Residuals (DHARMa), retrospectives,
+interval widths and comparison with an existing index are **diagnostics of the final model**
+(Step 4), not selection criteria.
 
 **Every stage produces three outputs**: the table, `plot(sel)` (status-coded ranking), and
 `plot(sel, type = "index", newdata = grid)`. The third is the one that decides whether the
